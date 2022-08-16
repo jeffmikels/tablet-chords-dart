@@ -116,7 +116,7 @@ FutureOr<Response> alertsHandler(Request req) async {
   String msg = req.url.queryParameters['msg'] ?? '';
   var wm = WebSocketMessage.alert(msg);
   wsManager.broadcast(wm);
-  return respondJsonOK(wm.json);
+  return respondJsonOK(wm);
 }
 
 // static handler
