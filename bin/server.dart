@@ -40,11 +40,12 @@ API DOCUMENTATION
 
 / or /index.html  => serve index.html
 /static          => serves static files from the static subdirectory
-/Sets            => serves list of Setlists
+/Sets/           => serves list of Setlists
 /Sets/NAME       => serves data for Setlist identified by NAME
 /Sets/--today--  => will replace --today-- with today's date YYYY-MM-DD before making request
 /Sets/--latest-- => will serve the most recent setlist (see implementation below for notes on caching)
-/Songs           => serves list of Songs [ BROKEN ]
+/Songs/          => serves list of Songs [ BROKEN ]
+/alert/          => sends a message specified by query param `msg` to all clients
 
 QUERY VARIABLES
 ?usecache=1      => will use the most recently cached data for a request
