@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
@@ -109,7 +110,7 @@ void setupRoutes(String prefix) {
 }
 
 // static handler
-FutureOr<Response> staticHandlerHelper(File f) async {
+FutureOr<Response> staticHandlerHelper(File f, {Uint8List Function(Uint8List)? postProcess}) async {
   final mimeMap = {
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',
@@ -119,6 +120,7 @@ FutureOr<Response> staticHandlerHelper(File f) async {
   };
   if (await f.exists()) {
     var bytes = await f.readAsBytes();
+    if (postProcess != null) bytes = postProcess(bytes);
     var fdata = f.path.split('.');
     var ext = 'txt';
     if (fdata.length > 1) {
@@ -179,7 +181,11 @@ FutureOr<Response> songsHandler(Request req) async {
 }
 
 FutureOr<Response> rootHandler(Request req) {
-  return staticHandlerHelper(File('ui/index.html'));
+  return staticHandlerHelper(File('ui/index.html'), postProcess: (Uint8List bytes) {
+    var s = utf8.decode(bytes);
+    s = s.replaceAll('[serverDirectory]', config.serverDirectory);
+    return Uint8List.fromList(utf8.encode(s));
+  });
 }
 
 // cache functions

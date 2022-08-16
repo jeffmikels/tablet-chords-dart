@@ -9,9 +9,9 @@ environment:
 
 dependencies:
   args: ^2.0.0
-  # planningcenter_api: ^1.1.1
-  planningcenter_api:
-    path: /Users/Jeff/Development/@Dart/planningcenter_api
+  planningcenter_api: ^1.1.1
+  # planningcenter_api:
+  #   path: /Users/Jeff/Development/@Dart/planningcenter_api
   shelf: ^1.1.0
   shelf_router: ^1.0.0
   shelf_static: ^1.1.1
