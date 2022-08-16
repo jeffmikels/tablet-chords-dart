@@ -13,6 +13,7 @@ import 'package:tablet_chords_dart/clients/opensong_dav_client.dart';
 import 'package:tablet_chords_dart/clients/pco_client.dart';
 import 'package:tablet_chords_dart/handlers/routes.dart';
 import 'package:tablet_chords_dart/ws/wsmanager.dart';
+import 'package:tablet_chords_dart/ws/wsmessage.dart';
 
 import '../conf/conf.dart' as config;
 
@@ -67,6 +68,7 @@ WEBSOCKET COMMANDS:
 ''';
 
 List<DescribedRoute> jsonRoutes = [
+  DescribedRoute('/alert/', 'Sends an alert message to connected tablets', alertsHandler),
   DescribedRoute('/Sets/', 'serves a list of recent Setlists', setsHandler),
   DescribedRoute(
     '/Sets/<path>',
@@ -107,6 +109,14 @@ void setupRoutes(String prefix) {
       _router.get(path, r.handler);
     }
   }
+}
+
+// alert handler
+FutureOr<Response> alertsHandler(Request req) async {
+  String msg = req.url.queryParameters['msg'] ?? '';
+  var wm = WebSocketMessage.alert(msg);
+  wsManager.broadcast(wm);
+  return respondJsonOK(wm.json);
 }
 
 // static handler
