@@ -17,9 +17,15 @@ import 'package:tablet_chords_dart/ws/wsmessage.dart';
 
 import '../conf/conf.dart' as config;
 
+extension LeftPad on int {
+  String pad(int num) => toString().padLeft(num, '0');
+}
+
 Response respondJsonOK(Object obj) {
   return Response.ok(json.encode(obj), headers: {'Content-Type': 'application/json'});
 }
+
+// GLOBALS
 
 // in-memory caches
 final songCache = <String, Song>{};
@@ -34,18 +40,21 @@ late SongsSetsClient songsSetsClient;
 // the manager for websocket connections
 late WebSocketManager wsManager;
 
+Timer? primeSetlistTimer;
+
 // Configure documentation.
 const help = '''
 API DOCUMENTATION
 
 / or /index.html  => serve index.html
-/static          => serves static files from the static subdirectory
-/Sets/           => serves list of Setlists
-/Sets/NAME       => serves data for Setlist identified by NAME
-/Sets/--today--  => will replace --today-- with today's date YYYY-MM-DD before making request
-/Sets/--latest-- => will serve the most recent setlist (see implementation below for notes on caching)
-/Songs/          => serves list of Songs [ BROKEN ]
-/alert/          => sends a message specified by query param `msg` to all clients
+/static/FILE      => serves static files from the static subdirectory
+/Sets/            => serves list of Setlists
+/Sets/NAME        => serves data for Setlist identified by NAME
+/Sets/--today--   => will replace --today-- with today's date YYYY-MM-DD before making request
+/Sets/--latest--  => will serve the most recent setlist (see implementation below for notes on caching)
+/Songs/           => serves list of Songs (DO NOT USE, NOT CACHED, SO WILL BE SLOOOOOOW!)
+/alert            => sends a message specified by query param `msg` to all clients
+/refresh          => asks the server to reprime the setlist cache
 
 QUERY VARIABLES
 ?usecache=1      => will use the most recently cached data for a request
@@ -69,7 +78,7 @@ WEBSOCKET COMMANDS:
 ''';
 
 List<DescribedRoute> jsonRoutes = [
-  DescribedRoute('/alert/', 'Sends an alert message to connected tablets', alertsHandler),
+  DescribedRoute('/alert', 'Sends an alert message to connected tablets', alertsHandler),
   DescribedRoute('/Sets/', 'serves a list of recent Setlists', setsHandler),
   DescribedRoute(
     '/Sets/<path>',
@@ -78,6 +87,10 @@ List<DescribedRoute> jsonRoutes = [
   ),
   DescribedRoute('/Songs/', 'serves a list of all available songs', songsHandler),
   DescribedRoute('/Songs/<dir>/<song>', 'serves an individual song', songsHandler),
+  DescribedRoute('/refresh', 'refreshes the internal setlist cache', (req) {
+    primeSetlistCache();
+    return respondJsonOK(WebSocketMessage('info', {'text': 'refreshing'}));
+  }),
 ];
 List<DescribedRoute> staticRoutes = [
   DescribedRoute('/', 'Root route. Serves index.html', rootHandler),
@@ -99,9 +112,8 @@ List<DescribedRoute> webSocketActions = [];
 //   ..get('$prefix/Songs/<dir>/<name>', _songsHandler)
 //   ..get('$prefix/static/<filename>', _myStaticHandler);
 
-final _router = Router();
-
 // FUNCTIONS
+final _router = Router();
 void setupRoutes(String prefix) {
   for (var routelist in [staticRoutes, jsonRoutes]) {
     for (var r in routelist) {
@@ -154,27 +166,41 @@ FutureOr<Response> staticHandler(Request req) async {
 FutureOr<Response> setsHandler(Request req) async {
   var setPath = req.params['path'];
   var withSongs = false;
-  // get a single setlist
-  if (setPath != null) {
-    withSongs = true;
-    Setlist? set;
 
-    if (setCache.containsKey(setPath)) {
-      set = setCache[setPath];
-    } else {
-      set = await songsSetsClient.getSetlist(setPath, withSongs: withSongs);
-      if (set != null) {
-        setCache[set.path] = set;
-        for (var song in set.songs) {
-          songCache[song.path] = song;
-        }
+  primeSetlistTimer?.cancel();
+  primeSetlistTimer = Timer(Duration(seconds: 5), () => primeSetlistCache());
+
+  if (setPath != null) {
+    setPath = Uri.decodeComponent(setPath);
+    // get a single setlist
+    if (setPath == '--latest--') {
+      if (setCache.isEmpty) {
+        await primeSetlistCache();
+      }
+      if (setCache.isEmpty) {
+        setPath = '--today--';
+      }
+      setPath = setCache.values.reduce((value, element) => value.date.isAfter(element.date) ? value : element).path;
+    }
+    if (setPath == '--today--') {
+      var now = DateTime.now();
+      setPath = '${now.year.pad(4)}-${now.month.pad(2)}-${now.day.pad(2)}';
+    }
+
+    Setlist? set = await songsSetsClient.getSetlist(setPath, withSongs: true);
+    if (set != null) {
+      setCache[set.path] = set;
+      for (var song in set.songs) {
+        songCache[song.path] = song;
       }
     }
+
     if (set == null) {
       return Response.notFound('SETLIST NOT FOUND: ${setPath} could not be found');
     }
     return respondJsonOK(set);
   } else {
+    // get all the setlists
     if (setCache.isEmpty) {
       await primeSetlistCache();
     }
@@ -186,9 +212,35 @@ FutureOr<Response> setsHandler(Request req) async {
 }
 
 FutureOr<Response> songsHandler(Request req) async {
-  String? songDir = req.params['dir'];
-  String? songFile = req.params['song'];
-  return Response.ok('Songs: ${songDir}/${songFile}\n');
+  String songDir = req.params['dir'] ?? '';
+  String songFile = req.params['song'] ?? '';
+  String cacheKey = songDir.isEmpty
+      ? '/'
+      : songFile.isEmpty
+          ? '/$songDir'
+          : '/$songDir/$songFile';
+  if (songCache.containsKey(cacheKey)) {
+    return respondJsonOK(songCache[cacheKey]!);
+  }
+
+  // return a single song
+  if (songFile.isNotEmpty) {
+    var song = await songsSetsClient.getSong('${songDir}/${songFile}');
+    if (song != null) {
+      songCache[cacheKey] = song;
+      return respondJsonOK(song);
+    }
+  } else {
+    var songs = await songsSetsClient.getSongs();
+    for (var song in songs.responseData!) {
+      var basename = song.path.split('/').last;
+      var path = '$songDir/$basename';
+      songCache[path] = song;
+      songCache[song.path] = song;
+    }
+    return respondJsonOK(songs.responseData!);
+  }
+  return Response.notFound('SONGS NOT FOUND: ${cacheKey}\n');
 }
 
 FutureOr<Response> rootHandler(Request req) {
@@ -200,14 +252,17 @@ FutureOr<Response> rootHandler(Request req) {
 }
 
 // cache functions
-Future primeSetlistCache() async {
+Future<void> primeSetlistCache() async {
   songsSetsClient.cache.clear();
   var res = await songsSetsClient.getSetlists();
   if (!res.isError) {
     setCache.clear();
     for (var sl in res.responseData!) {
-      setCache[sl.path] = sl;
+      // var path = Uri.decodeComponent(sl.path);
+      // setCache[path] = sl;
+      setCache[sl.name] = sl;
     }
+    wsManager.broadcast(WebSocketMessage('setlists', setCache));
   }
 }
 

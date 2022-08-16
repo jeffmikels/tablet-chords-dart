@@ -48,26 +48,27 @@ class OpenSongDavClient extends SongsSetsClient {
   }
 
   Future<T?> _loadFile<T>(FileInfo file) async {
+    var cleanPath = Uri.decodeComponent(file.path);
     try {
-      print('Loading: ${file.path}');
+      print('Loading: ${cleanPath}');
       late String xmlString;
-      if (useCache && cache.containsKey(file.path)) {
-        xmlString = cache[file.path]!;
+      if (useCache && cache.containsKey(cleanPath)) {
+        xmlString = cache[cleanPath]!;
       } else {
         xmlString = await client.downloadToBinaryString(file.path);
-        cache[file.path] = xmlString;
+        cache[cleanPath] = xmlString;
       }
       switch (T) {
         case Setlist:
-          return Setlist.fromOpenSongXML(file.path, file.modified, xmlString) as T;
+          return Setlist.fromOpenSongXML(cleanPath, file.modified, xmlString) as T;
         case Song:
-          return Song.fromOpenSongXML(file.path, file.modified, xmlString) as T;
+          return Song.fromOpenSongXML(cleanPath, file.modified, xmlString) as T;
         default:
           return null;
       }
     } catch (e) {
       print(e);
-      print('Failed to get data for ${file.path}');
+      print('Failed to get data for "$cleanPath"');
       return null;
     }
   }
@@ -105,7 +106,15 @@ class OpenSongDavClient extends SongsSetsClient {
         }));
       }
       await _batch(futures);
-      setlist.songs = songs;
+      // match setlist songs to new songs
+      for (var song in setlist.songs) {
+        try {
+          var other = songs.firstWhere((s) => s.path.endsWith(song.path));
+          song.copyFrom(other);
+        } catch (e) {
+          print(e);
+        }
+      }
     }
     return setlist;
   }
@@ -122,7 +131,8 @@ class OpenSongDavClient extends SongsSetsClient {
     List<FileInfo> dirs = await client.ls(path: 'Songs');
     for (var d in dirs) {
       print('Found Dir: ${d.path}');
-      futures.add(getSongFolder(d.path).then((items) => songs.addAll(items)));
+      // futures.add(getSongFolder(d.path).then((items) => songs.addAll(items)));
+      await getSongFolder(d.path).then((items) => songs.addAll(items));
     }
     await _batch(futures);
     return ClientResponse(songs, responseText: '');

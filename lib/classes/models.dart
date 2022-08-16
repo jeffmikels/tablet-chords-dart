@@ -101,6 +101,17 @@ class Song {
     fromPlanningCenterSong(song, arrangement);
   }
 
+  void copyFrom(Song other) {
+    path = other.path;
+    title = other.title;
+    lyrics = other.lyrics;
+    bpm = other.bpm;
+    key = other.key;
+    ccli = other.ccli;
+    writer = other.writer;
+    copyright = other.copyright;
+  }
+
   void fromOpenSongXML(String xmlString) {
     var s = OpenSongSong.fromXML(path, xmlString);
     loaded = true;

@@ -73,8 +73,8 @@
 		.song {margin-bottom:20px;border-bottom:3px solid yellow;}
 		.song h3.title {color:red;font-size:1.4em;margin-bottom:0;margin-top:15px;font-weight:900;}
 		
-		.chordbuttons {margin:10px 0;}
-		.chordbuttons button {color:black;font-size:20pt;border-radius:2px;line-height:26pt;width:28pt;}
+		.controlbuttons {margin:10px 0;display:flex;}
+		.controlbuttons button {color:black;font-size:1vw;border-radius:6px;line-height:2vw;width:2vw;display:flex;align-content:center;justify-content: center;margin-right: 4px;}
 		.transposebutton {background:#dd0;}
 		.nashvillebutton {background:#ad3b3b;}
 		.capobutton {background:#faf;}
@@ -204,7 +204,7 @@
 								<span v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
 								<!-- <span v-if="song.transpose > 0"></span> -->
 							</div>
-							<div v-if="song.key" class="chordbuttons">
+							<div v-if="song.key" class="controlbuttons">
 								<button class="transposebutton" @click="transpose(song, -1)">&#8722</button>
 								<button class="transposebutton" @click="transpose(song, 1)">＋</button>
 								<button class="nashvillebutton" :class="{active:nashville}" @click="nashville = !nashville">#</button>
@@ -623,25 +623,34 @@
 						else this.all();
 					}
 				},
-				getSets() {
-					let url = `${endpoint}/Sets/`;
-					this.debug = 'loading';
-					this.loading += 1;
-					axios.get(url)
-					.then((res)=>{
-						console.log(res)
-						this.sets = res.data;
-						this.sets.sort((a,b)=>b.date < a.date ? -1 : 1);
-						this.debug = '';
-						this.loading -= 1;
-					})
-					.catch((err)=>{
-						console.log(err)
-					})
+				requestRefresh() {
+					if (this.ws) this.ws.send({type: 'refresh', data: {}})
+					else axios.get(`${endpoint}/refresh`);
 				},
-				deselectSet() {
+				getSets() {
+					return new Promise((resolve, reject)=>{
+						let url = `${endpoint}/Sets/`;
+						this.debug = 'loading';
+						if (!this.current_set) this.loading += 1;
+						axios.get(url)
+						.then((res)=>{
+							console.log(res)
+							res.data.sort((a,b)=>b.date < a.date ? -1 : 1);
+							this.sets = res.data;
+							this.debug = '';
+							if (!this.current_set) this.loading -= 1;
+						})
+						.catch((err)=>{
+							console.log(err)
+						})
+						.finally(()=>{
+							resolve();
+						})
+					});
+				},
+				async deselectSet() {
 					this.current_set=false;
-					this.getSets();
+					await this.getSets();
 					window.history.pushState('','','#');
 				},
 				selectSet(set_name) {
@@ -1055,7 +1064,7 @@
 				},
 				
 				// hash check is used for location settings only
-				hashCheck() {
+				async hashCheck() {
 					if (window.location.hash.length > 1) {
 						let hashdata = window.location.hash.replace('#','').split(',')
 						console.log(hashdata)
@@ -1091,12 +1100,12 @@
 					}
 				},
 			},
-			created: function(){
+			created: async function(){
 				// these are immediate
 				this.loadSettings();
 
 				// prepare the sets
-				this.getSets();
+				await this.getSets();
 				this.hashCheck();
 				
 				window.devel = false;
@@ -1115,6 +1124,12 @@
 					let {type, data} = JSON.parse(msg.data);
 					console.log(data);
 					switch (type) {
+						case 'refresh':
+							this.getSets();
+							break;
+						case 'setlists':
+							this.sets = data;
+							break;
 						case 'alert':
 							this.renotify(data.text)
 							break;

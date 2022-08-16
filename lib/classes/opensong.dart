@@ -87,6 +87,8 @@ class OpenSongSong {
   late XmlDocument _doc;
   XmlElement? get _songData => _doc.getElement('song');
 
+  String get xml => _doc.toXmlString();
+
   OpenSongSong(this.path) {
     loadSong();
   }
@@ -109,30 +111,22 @@ class OpenSongSong {
     try {
       _doc = XmlDocument.parse(_xml);
     } on XmlParserException catch (e) {
-      print(e.toString());
+      // print(e.toString());
       throw SongInvalidDataException(path);
     }
     if (_songData == null) {
-      print('Could not find a `song` element in the source XML.');
+      // print('Could not find a `song` element in the source XML.');
       throw SongInvalidDataException(path);
     }
 
-    _parseLyrics();
+    _checkLyricsKeyAndBpm();
   }
 
   @override
-  String toString() => _doc.toXmlString();
-
-  // void save() {
-  //   File(path).writeAsStringSync(_doc.toXmlString());
-  // }
+  String toString() => xml;
 
   /// make the string lowercase, but capitalize references to a key
   String formatComment(String s) {
-    // return s.trim().toLowerCase().replaceAllMapped(
-    //       RegExp(r'(\s+)([abcdefg][#b]?)'),
-    //       (match) => match.group(1)! + match.group(2)!.myCapitalize(),
-    //     );
     return s;
   }
 
@@ -231,11 +225,11 @@ class OpenSongSong {
     }
     // lyrics = ';SAVED KEY: $key ($verb)\n' + lyrics;
     lyrics = lyrics.replaceFirst(RegExp(r'^\.'), '[key]\n.$key\n\n.');
-    print(_doc.toXmlString());
+    // print(_doc.toXmlString());
     return key;
   }
 
-  void _parseLyrics() {
+  void _checkLyricsKeyAndBpm() {
     // look for [key] signature
     var keysearch = RegExp(r'\[key\]\s+\.\s*([^\s]+)', caseSensitive: false);
     lyricskey = keysearch.firstMatch(lyrics)?.group(1) ?? guessKeyFromLyrics();
@@ -343,8 +337,8 @@ class OpenSongSong {
 
         // lyric lines
         case ' ':
-          print(lastChordLine);
-          print(line);
+          // print(lastChordLine);
+          // print(line);
 
           // this is a lyric line
           // if we need to add chords, do a chordpro line merge with them
@@ -362,8 +356,8 @@ class OpenSongSong {
       }
     }
     var retval = converted.join('\n').replaceAll(RegExp('\n\n+'), '\n\n');
-    print('CONVERSION COMPLETE:');
-    print(retval);
+    // print('CONVERSION COMPLETE:');
+    // print(retval);
     return retval;
   }
 
