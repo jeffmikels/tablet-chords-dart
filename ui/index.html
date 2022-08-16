@@ -1107,7 +1107,7 @@
 					document.body.addEventListener("click", (e)=>{this.tap(e);e.stopPropagation();});
 				}
 				let [head, tail] = window.location.href.split(endpoint)
-				let server = head + endpoint;
+				let server = head + endpoint + '/';
 				server = server.replace('http', 'ws').replace();
 				this.ws = new WebSocket(server);
 				this.ws.onmessage = (msg) => {
