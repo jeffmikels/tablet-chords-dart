@@ -7,16 +7,16 @@
 	
 	
 	<!-- ABC -->
-	<!-- <script src="static/abc2svg.js"></script> -->
-	<!-- <script src="static/abcemb.js"></script> -->
-	<!-- <script src="static/verovio-toolkit.js"></script> -->
-	<script src="static/abcjs_midi_5.8.0-min.js"></script>
+	<!-- <script src="abc2svg.js"></script> -->
+	<!-- <script src="abcemb.js"></script> -->
+	<!-- <script src="verovio-toolkit.js"></script> -->
+	<script src="abcjs_midi_5.8.0-min.js"></script>
 	
 	<!-- Vue.js production version, optimized for size and speed -->
-	<script src="static/vue.js"></script>
+	<script src="vue.js"></script>
 	
 	<!-- Axios -->
-	<script src="static/axios.min.js"></script>
+	<script src="axios.min.js"></script>
 	
 	<!-- Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -299,7 +299,7 @@
 		function loadClick(callback) {
 			audioContext = new AudioContext();
 			var req = new XMLHttpRequest();
-			req.open('GET', './static/click.wav', true);
+			req.open('GET', './click.wav', true);
 			req.responseType = 'arraybuffer';
 			// Decode asynchronously
 			req.onload = function() {

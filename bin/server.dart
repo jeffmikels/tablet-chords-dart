@@ -47,7 +47,7 @@ const help = '''
 API DOCUMENTATION
 
 / or /index.html  => serve index.html
-/static/FILE      => serves static files from the static subdirectory
+/FILE             => serves static files from the public subdirectory
 /Sets/            => serves list of Setlists
 /Sets/NAME        => serves data for Setlist identified by NAME
 /Sets/--today--   => will replace --today-- with today's date YYYY-MM-DD before making request
@@ -99,7 +99,8 @@ List<DescribedRoute> staticRoutes = [
     'Help route. Serves the contents of the `help` String variable',
     (req) => Response.ok(help, headers: {'content-type': 'text/plain'}),
   ),
-  DescribedRoute('/static/<filename>', 'serves hosted js, css, and image files', staticHandler),
+  DescribedRoute('/<filename>', 'serves hosted js, css, and image files', staticHandler),
+  DescribedRoute('/public/<filename>', 'serves hosted js, css, and image files', staticHandler),
 ];
 List<DescribedRoute> webSocketActions = [];
 
@@ -110,7 +111,7 @@ List<DescribedRoute> webSocketActions = [];
 //   ..get('$prefix/Sets/<name>', _setsHandler)
 //   ..get('$prefix/Songs', _songsHandler)
 //   ..get('$prefix/Songs/<dir>/<name>', _songsHandler)
-//   ..get('$prefix/static/<filename>', _myStaticHandler);
+//   ..get('$prefix/public/<filename>', _myStaticHandler);
 
 // FUNCTIONS
 final _router = Router();
@@ -159,7 +160,10 @@ FutureOr<Response> staticHandler(Request req) async {
   // remove the subdirectory (leading slashes are not included in url.path)
   // String localPath = req.url.path.replaceFirst('${config.serverDirectory}/', '');
   String localPath = req.params['filename']!;
-  var f = File('static/$localPath');
+  if (localPath.startsWith('/public/')) {
+    localPath = localPath.replaceAll(RegExp(r'/?public/?'), '');
+  }
+  var f = File('public/$localPath');
   return staticHandlerHelper(f);
 }
 
@@ -244,7 +248,7 @@ FutureOr<Response> songsHandler(Request req) async {
 }
 
 FutureOr<Response> rootHandler(Request req) {
-  return staticHandlerHelper(File('ui/index.html'), postProcess: (Uint8List bytes) {
+  return staticHandlerHelper(File('public/index.html'), postProcess: (Uint8List bytes) {
     var s = utf8.decode(bytes);
     s = s.replaceAll('[serverDirectory]', config.serverDirectory);
     return Uint8List.fromList(utf8.encode(s));
