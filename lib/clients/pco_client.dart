@@ -4,18 +4,18 @@ import '../clients/client.dart';
 import '../classes/models.dart';
 export 'client.dart';
 
-// extension ClientReadString on webdav.Client {
-//   Future<String> readString(String path) async {
-//     var bytes = await read(path);
-//     return utf8.decode(bytes);
-//   }
-// }
+const credentialsFile = 'pco_credentials.json';
 
 class PCOClient extends SongsSetsClient {
   String serviceTypeId;
 
-  /// make sure the PlanningCenter instance has been initialized first
-  PCOClient(this.serviceTypeId);
+  /// The PlanningCenter instance must be initialized first, or an `appId` and `appSecret`
+  /// may be supplied to the client for initialization.
+  PCOClient(this.serviceTypeId, [String? appId, String? appSecret]) {
+    if (appId != null && appSecret != null) {
+      PlanningCenter.init(appId, appSecret);
+    }
+  }
 
   Future<void> _batch(List<Future> futures, [int concurrent = 10]) async {
     if (futures.length < concurrent) {

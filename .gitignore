@@ -5,3 +5,6 @@
 # Conventional directory for build output.
 build/
 conf/conf.dart
+
+# secrets
+pco_credentials.json

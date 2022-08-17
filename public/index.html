@@ -1128,7 +1128,8 @@
 							this.getSets();
 							break;
 						case 'setlists':
-							this.sets = data;
+							data.sets.sort((a,b)=>b.date < a.date ? -1 : 1);
+							this.sets = data.sets;
 							break;
 						case 'alert':
 							this.renotify(data.text)

@@ -28,8 +28,9 @@ Response respondJsonOK(Object obj) {
 // GLOBALS
 
 // in-memory caches
-final songCache = <String, Song>{};
-final setCache = <String, Setlist>{};
+final songsByPath = <String, Song>{};
+final setsByPath = <String, Setlist>{};
+final setsCache = <Setlist>[];
 
 // blacklist
 const blacklist = {};
@@ -42,9 +43,82 @@ late WebSocketManager wsManager;
 
 Timer? primeSetlistTimer;
 
+// define the API
+var setPathParam = DescribedParam(
+  'path',
+  'string',
+  'With OpenSong, refers to file in the Sets subdirectory. With PlanningCenter, refers to a plan ID. May also be one of the following options.',
+  options: [
+    DescribedOption('--today--', 'sets the path to YYYY-MM-DD for today'),
+    DescribedOption('--latest--', 'loads the latest set'),
+  ],
+);
+var setQueryParams = [
+  DescribedParam('filter', 'string', 'filter the songs, use comma to apply multiple filters (applied in order)',
+      options: [
+        DescribedOption('pre-alternates', 'if set, includes songs until a song with ALTERNATES in the title'),
+        DescribedOption('no-duplicates', 'excludes duplicate songs'),
+        DescribedOption('no-lyrics', 'excludes lyrics from all songs'),
+        DescribedOption('no-chords', 'excludes chord lines from songs'),
+        DescribedOption('ccli-only', 'includes only songs with ccli numbers'),
+      ]),
+  DescribedParam(
+    'title',
+    'string',
+    'includes / excludes sets where the title contains text (case insensitive) (prefix with ! to exclude)',
+  ),
+];
+List<DescribedRoute> apiRoutes = [
+  DescribedRoute(
+    '/Sets/',
+    'serves a list of recent Setlists',
+    setsHandler,
+    queryParams: setQueryParams,
+  ),
+  DescribedRoute(
+      '/Sets/<path>',
+      'serves data for Setlist identified by path. Note, there are two special names available, --today-- and --latest--.',
+      setsHandler,
+      routeParams: [setPathParam],
+      queryParams: setQueryParams),
+  // DescribedRoute('/Songs/', 'serves a list of all available songs', songsHandler),
+  // DescribedRoute('/Songs/<dir>/<song>', 'serves an individual song', songsHandler),
+  DescribedRoute('/alert', 'Sends an alert message to connected tablets', alertsHandler),
+  DescribedRoute('/refresh', 'refreshes the internal setlist cache', (req) {
+    primeSetlistCache();
+    return respondJsonOK(WebSocketMessage('info', {'text': 'refreshing'}));
+  }),
+];
+List<DescribedRoute> staticRoutes = [
+  DescribedRoute('/', 'Root route. Serves index.html', rootHandler),
+  DescribedRoute(
+    '/help',
+    'Help route. Serves the contents of the `help` String variable',
+    (req) => Response.ok(help(), headers: {'content-type': 'text/plain'}),
+  ),
+  DescribedRoute('/<filename>', 'serves hosted js, css, and image files', staticHandler),
+  DescribedRoute('/public/<filename>', 'DEPRECATED: serves hosted js, css, and image files', staticHandler),
+];
+
 // Configure documentation.
-const help = '''
+String help() {
+  var staticHelp = staticRoutes.map((route) => route.toString()).join('\n');
+  var apiHelp = apiRoutes.map((route) => route.toString()).join('\n');
+  return '''
+STATIC FILE ROUTES
+
+$staticHelp
+
 API DOCUMENTATION
+
+$apiHelp
+
+WEBSOCKET COMMANDS:
+{type: 'alert', data: {text: 'ALERT_TEXT'}}  => will display an alert on every connected tablet
+{type: 'control', data: {set: 'SETNAME'}}  `=> will request control of a setlist
+{type: 'key', data: {set: 'SETNAME', songnum: SONGNUM, key: 'KEY'}}  => will send a key update notification
+
+OLD API DOCUMENTATION
 
 / or /index.html  => serve index.html
 /FILE             => serves static files from the public subdirectory
@@ -57,7 +131,6 @@ API DOCUMENTATION
 /refresh          => asks the server to reprime the setlist cache
 
 QUERY VARIABLES
-?usecache=1      => will use the most recently cached data for a request
 ?filter=a,b,...  => will filter the results, multiple filters with comma (applied in order)
 
 SONG FILTERS:
@@ -71,59 +144,22 @@ SET FILTERS:
 text             => includes sets where the title contains text (case insensitive)
 !text            => excludes sets where the title contains text (case insensitive)
 
-WEBSOCKET COMMANDS:
-{type: 'alert', data: {text: 'ALERT_TEXT'}}  => will display an alert on every connected tablet
-{type: 'control', data: {set: 'SETNAME'}}  => will request control of a setlist
-{type: 'key', data: {set: 'SETNAME', songnum: SONGNUM, key: 'KEY'}}  => will send a key update notification
 ''';
+}
 
-List<DescribedRoute> jsonRoutes = [
-  DescribedRoute('/alert', 'Sends an alert message to connected tablets', alertsHandler),
-  DescribedRoute('/Sets/', 'serves a list of recent Setlists', setsHandler),
-  DescribedRoute(
-    '/Sets/<path>',
-    'serves data for Setlist identified by path. Note, there are two special names available, --today-- and --latest--.',
-    setsHandler,
-  ),
-  DescribedRoute('/Songs/', 'serves a list of all available songs', songsHandler),
-  DescribedRoute('/Songs/<dir>/<song>', 'serves an individual song', songsHandler),
-  DescribedRoute('/refresh', 'refreshes the internal setlist cache', (req) {
-    primeSetlistCache();
-    return respondJsonOK(WebSocketMessage('info', {'text': 'refreshing'}));
-  }),
-];
-List<DescribedRoute> staticRoutes = [
-  DescribedRoute('/', 'Root route. Serves index.html', rootHandler),
-  DescribedRoute(
-    '/help',
-    'Help route. Serves the contents of the `help` String variable',
-    (req) => Response.ok(help, headers: {'content-type': 'text/plain'}),
-  ),
-  DescribedRoute('/<filename>', 'serves hosted js, css, and image files', staticHandler),
-  DescribedRoute('/public/<filename>', 'serves hosted js, css, and image files', staticHandler),
-];
-List<DescribedRoute> webSocketActions = [];
-
-// by setting up the routes this way, we can document our endpoints
-// final _router = Router()
-//   ..get('$prefix/', _rootHandler)
-//   ..get('$prefix/Sets', _setsHandler)
-//   ..get('$prefix/Sets/<name>', _setsHandler)
-//   ..get('$prefix/Songs', _songsHandler)
-//   ..get('$prefix/Songs/<dir>/<name>', _songsHandler)
-//   ..get('$prefix/public/<filename>', _myStaticHandler);
-
-// FUNCTIONS
-final _router = Router();
-void setupRoutes(String prefix) {
-  for (var routelist in [staticRoutes, jsonRoutes]) {
+Router setupRoutes(String prefix) {
+  final router = Router();
+  for (var routelist in [staticRoutes, apiRoutes]) {
     for (var r in routelist) {
       var path = '$prefix${r.path}';
       print('setting up route for $path');
-      _router.get(path, r.handler);
+      router.get(path, r.handler);
     }
   }
+  return router;
 }
+
+// HANDLERS
 
 // alert handler
 FutureOr<Response> alertsHandler(Request req) async {
@@ -169,8 +205,6 @@ FutureOr<Response> staticHandler(Request req) async {
 
 FutureOr<Response> setsHandler(Request req) async {
   var setPath = req.params['path'];
-  var withSongs = false;
-
   primeSetlistTimer?.cancel();
   primeSetlistTimer = Timer(Duration(seconds: 5), () => primeSetlistCache());
 
@@ -178,13 +212,13 @@ FutureOr<Response> setsHandler(Request req) async {
     setPath = Uri.decodeComponent(setPath);
     // get a single setlist
     if (setPath == '--latest--') {
-      if (setCache.isEmpty) {
+      if (setsByPath.isEmpty) {
         await primeSetlistCache();
       }
-      if (setCache.isEmpty) {
+      if (setsByPath.isEmpty) {
         setPath = '--today--';
       }
-      setPath = setCache.values.reduce((value, element) => value.date.isAfter(element.date) ? value : element).path;
+      setPath = setsByPath.values.reduce((value, element) => value.date.isAfter(element.date) ? value : element).path;
     }
     if (setPath == '--today--') {
       var now = DateTime.now();
@@ -193,9 +227,9 @@ FutureOr<Response> setsHandler(Request req) async {
 
     Setlist? set = await songsSetsClient.getSetlist(setPath, withSongs: true);
     if (set != null) {
-      setCache[set.path] = set;
+      setsByPath[set.path] = set;
       for (var song in set.songs) {
-        songCache[song.path] = song;
+        songsByPath[song.path] = song;
       }
     }
 
@@ -205,13 +239,13 @@ FutureOr<Response> setsHandler(Request req) async {
     return respondJsonOK(set);
   } else {
     // get all the setlists
-    if (setCache.isEmpty) {
+    if (setsByPath.isEmpty) {
       await primeSetlistCache();
     }
-    if (setCache.isEmpty) {
+    if (setsByPath.isEmpty) {
       return Response.notFound('SETLISTS NOT FOUND: Could not load setlists');
     }
-    return respondJsonOK(setCache.values.toList());
+    return respondJsonOK(setsCache.toList());
   }
 }
 
@@ -223,15 +257,15 @@ FutureOr<Response> songsHandler(Request req) async {
       : songFile.isEmpty
           ? '/$songDir'
           : '/$songDir/$songFile';
-  if (songCache.containsKey(cacheKey)) {
-    return respondJsonOK(songCache[cacheKey]!);
+  if (songsByPath.containsKey(cacheKey)) {
+    return respondJsonOK(songsByPath[cacheKey]!);
   }
 
   // return a single song
   if (songFile.isNotEmpty) {
     var song = await songsSetsClient.getSong('${songDir}/${songFile}');
     if (song != null) {
-      songCache[cacheKey] = song;
+      songsByPath[cacheKey] = song;
       return respondJsonOK(song);
     }
   } else {
@@ -239,8 +273,8 @@ FutureOr<Response> songsHandler(Request req) async {
     for (var song in songs.responseData!) {
       var basename = song.path.split('/').last;
       var path = '$songDir/$basename';
-      songCache[path] = song;
-      songCache[song.path] = song;
+      songsByPath[path] = song;
+      songsByPath[song.path] = song;
     }
     return respondJsonOK(songs.responseData!);
   }
@@ -257,16 +291,18 @@ FutureOr<Response> rootHandler(Request req) {
 
 // cache functions
 Future<void> primeSetlistCache() async {
-  songsSetsClient.cache.clear();
+  songsSetsClient.useCache = false;
   var res = await songsSetsClient.getSetlists();
   if (!res.isError) {
-    setCache.clear();
+    setsByPath.clear();
+    setsCache.clear();
     for (var sl in res.responseData!) {
-      // var path = Uri.decodeComponent(sl.path);
-      // setCache[path] = sl;
-      setCache[sl.name] = sl;
+      var path = Uri.decodeComponent(sl.path);
+      setsByPath[path] = sl;
+      setsByPath[sl.name] = sl;
+      setsCache.add(sl);
     }
-    wsManager.broadcast(WebSocketMessage('setlists', setCache));
+    wsManager.broadcast(WebSocketMessage('setlists', {'sets': setsCache}));
   }
 }
 
@@ -277,7 +313,7 @@ void setupClient() {
   if (config.usedav) {
     songsSetsClient = OpenSongDavClient(config.davUrl, config.opensongdir, config.davUsername, config.davPassword);
   } else {
-    songsSetsClient = PCOClient(config.pcoServiceTypeId);
+    songsSetsClient = PCOClient(config.pcoServiceTypeId, config.pcoAppId, config.pcoSecret);
   }
   songsSetsClient.useCache = false;
   wsManager = WebSocketManager(songsSetsClient);
@@ -286,10 +322,6 @@ void setupClient() {
 void setupCache() async {
   await primeSetlistCache();
   await primeSongCache();
-  setupTimers();
-}
-
-void setupTimers() {
   Timer.periodic(Duration(hours: 6), (timer) async {
     await primeSetlistCache();
     primeSongCache();
@@ -301,8 +333,8 @@ void startServer() {
   // final staticHandler = createStaticHandler('static', defaultDocument: 'index.html', listDirectories: false);
   // final pipeline = Pipeline().addMiddleware(logRequests()).addHandler(_router);
 
-  // var handler = Cascade().add(webSocketHandler(_wsConnectHandler)).add(_myStaticHandler).add(_application).add(_router).handler;
-  var handler = Cascade().add(webSocketHandler(wsManager.onConnect)).add(_router).handler;
+  var router = setupRoutes(config.serverDirectory.isEmpty ? '' : '/${config.serverDirectory}');
+  var handler = Cascade().add(webSocketHandler(wsManager.onConnect)).add(router).handler;
 
   // For running in containers, we respect the PORT environment variable.
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? config.serverPort;
@@ -315,6 +347,5 @@ void startServer() {
 void main(List<String> args) async {
   setupClient();
   setupCache();
-  setupRoutes(config.serverDirectory.isEmpty ? '' : '/${config.serverDirectory}');
   startServer();
 }

@@ -10,7 +10,7 @@ void main() async {
   var sundayWorship = '1169425';
   var planId = '59506404';
 
-  var client = PCOClient(sundayWorship);
+  var client = PCOClient(config.pcoServiceTypeId);
   var sets = await client.getSetlists(perPage: 10);
   for (var set in sets.responseData!) {
     print('${set.name} ${set.description} ${set.date}');
