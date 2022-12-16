@@ -203,14 +203,15 @@ FutureOr<Response> staticHandler(Request req) async {
   return staticHandlerHelper(f);
 }
 
+/// serves a single set (if path is sent) or a list of all upcoming setlists
 FutureOr<Response> setsHandler(Request req) async {
   var setPath = req.params['path'];
-  primeSetlistTimer?.cancel();
-  primeSetlistTimer = Timer(Duration(seconds: 5), () => primeSetlistCache());
 
+  // setPath is set when a single setlist is requested
   if (setPath != null) {
     setPath = Uri.decodeComponent(setPath);
-    // get a single setlist
+
+    // handle special case setlist names
     if (setPath == '--latest--') {
       if (setsByPath.isEmpty) {
         await primeSetlistCache();
@@ -218,26 +219,42 @@ FutureOr<Response> setsHandler(Request req) async {
       if (setsByPath.isEmpty) {
         setPath = '--today--';
       }
+
+      // look up the latest setPath by doing a "reduce" method
+      // you could also do this by sorting first and then popping the first/last item
+      // but I wanted to learn reduce
       setPath = setsByPath.values.reduce((value, element) => value.date.isAfter(element.date) ? value : element).path;
     }
+
+    // create a set path from today's date and attempt to load it
     if (setPath == '--today--') {
       var now = DateTime.now();
       setPath = '${now.year.pad(4)}-${now.month.pad(2)}-${now.day.pad(2)}';
     }
 
+    // get a single setlist
     Setlist? set = await songsSetsClient.getSetlist(setPath, withSongs: true);
-    if (set != null) {
-      setsByPath[set.path] = set;
-      for (var song in set.songs) {
-        songsByPath[song.path] = song;
-      }
-    }
-
     if (set == null) {
       return Response.notFound('SETLIST NOT FOUND: $setPath could not be found');
     }
+
+    if (set.songs.isEmpty) {
+      return Response.notFound('SETLIST $setPath CONTAINS NO SONGS');
+    }
+
+    // cache this result for later
+    setsByPath[set.path] = set;
+
+    // cache the songs for later
+    for (var song in set.songs) {
+      songsByPath[song.path] = song;
+    }
+
     return respondJsonOK(set);
   } else {
+    // always reprime the setlist cache whenever this function is called
+    primeSetlistTimer?.cancel();
+
     // get all the setlists
     if (setsByPath.isEmpty) {
       await primeSetlistCache();
@@ -245,6 +262,8 @@ FutureOr<Response> setsHandler(Request req) async {
     if (setsByPath.isEmpty) {
       return Response.notFound('SETLISTS NOT FOUND: Could not load setlists');
     }
+
+    primeSetlistTimer = Timer(Duration(seconds: 5), () => primeSetlistCache());
     return respondJsonOK(setsCache.toList());
   }
 }
@@ -284,7 +303,7 @@ FutureOr<Response> songsHandler(Request req) async {
 FutureOr<Response> rootHandler(Request req) {
   return staticHandlerHelper(File('public/index.html'), postProcess: (Uint8List bytes) {
     var s = utf8.decode(bytes);
-    s = s.replaceAll('[serverDirectory]', config.serverDirectory);
+    s = s.replaceAll('[serverEndpoint]', config.serverDirectory);
     return Uint8List.fromList(utf8.encode(s));
   });
 }
@@ -298,6 +317,7 @@ Future<void> primeSetlistCache() async {
     setsCache.clear();
     for (var sl in res.responseData!) {
       var path = Uri.decodeComponent(sl.path);
+      if (sl.songs.isEmpty) continue;
       setsByPath[path] = sl;
       setsByPath[sl.name] = sl;
       setsCache.add(sl);

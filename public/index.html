@@ -283,8 +283,10 @@
 		let bpm = 1;
 		let flasher;
 		
-		// must match the configuration
-		const endpoint = '/[serverDirectory]';
+		// [serverEndpoint] will be replaced by the server
+		const endpoint = '/[serverEndpoint]';
+
+
 		const chordletters = 'A A# B C C# D D# E F F# G G# A Bb B C Db D Eb E F Gb G Ab'.split(' ');
 		const scale_colors = ['','m','m','','','m','dim'];
 		const semitones_to_nashville = {
@@ -1074,6 +1076,7 @@
 				},
 			},
 			created: async function() {
+				
 				// these are immediate
 				this.loadSettings();
 
@@ -1088,10 +1091,12 @@
 					document.body.addEventListener("tap", (e)=>{this.tap(e);e.stopPropagation();});
 					document.body.addEventListener("click", (e)=>{this.tap(e);e.stopPropagation();});
 				}
-				let [head, tail] = window.location.href.split(endpoint)
-				let server = head + endpoint + '/';
-				server = server.replace('http', 'ws').replace();
-				this.ws = new WebSocket(server);
+
+				let urldata = window.location.href.split('/')
+				let wsserver = `ws://${urldata[2]}${endpoint}`
+				// let server = head + endpoint + '/';
+				// server = server.replace('http', 'ws').replace();
+				this.ws = new WebSocket(wsserver);
 				this.ws.onmessage = (msg) => {
 					console.log(msg);
 					let {type, data} = JSON.parse(msg.data);
