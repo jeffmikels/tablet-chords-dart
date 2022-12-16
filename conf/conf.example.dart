@@ -5,7 +5,7 @@ const davUsername = "";
 const davPassword = "";
 
 // preserve the slashes at beginning and end
-const opensongdir = '/Path/To/OpenSong/';
+const davDir = '/Path/To/OpenSong/';
 
 const pcoAppId = '';
 const pcoSecret = '';

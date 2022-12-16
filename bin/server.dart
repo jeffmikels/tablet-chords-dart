@@ -207,6 +207,8 @@ FutureOr<Response> staticHandler(Request req) async {
 FutureOr<Response> setsHandler(Request req) async {
   var setPath = req.params['path'];
 
+  // if we are using dav, then we only want the path after the davDir
+
   // setPath is set when a single setlist is requested
   if (setPath != null) {
     setPath = Uri.decodeComponent(setPath);
@@ -317,6 +319,10 @@ Future<void> primeSetlistCache() async {
     setsCache.clear();
     for (var sl in res.responseData!) {
       var path = Uri.decodeComponent(sl.path);
+
+      // we don't want to send the webdav information over the line
+      if (config.usedav) sl.path = path.replaceAll('${config.davDir}Sets/', '');
+
       if (sl.songs.isEmpty) continue;
       setsByPath[path] = sl;
       setsByPath[sl.name] = sl;
@@ -331,7 +337,7 @@ Future primeSongCache() async {}
 // setup functions
 void setupClient() {
   if (config.usedav) {
-    songsSetsClient = OpenSongDavClient(config.davUrl, config.opensongdir, config.davUsername, config.davPassword);
+    songsSetsClient = OpenSongDavClient(config.davUrl, config.davDir, config.davUsername, config.davPassword);
   } else {
     songsSetsClient = PCOClient(config.pcoServiceTypeId, config.pcoAppId, config.pcoSecret);
   }

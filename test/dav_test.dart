@@ -10,7 +10,7 @@ void debug(Object o) {
 }
 
 void main() async {
-  var client = OpenSongDavClient(config.davUrl, config.opensongdir, config.davUsername, config.davPassword);
+  var client = OpenSongDavClient(config.davUrl, config.davDir, config.davUsername, config.davPassword);
   var sets = await client.getSetlists();
   print(sets);
   for (var set in sets.responseData!) {
