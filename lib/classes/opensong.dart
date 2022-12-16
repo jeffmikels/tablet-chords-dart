@@ -111,7 +111,7 @@ class OpenSongSong {
     try {
       _doc = XmlDocument.parse(_xml);
     } on XmlParserException catch (e) {
-      // print(e.toString());
+      print(e.toString());
       throw SongInvalidDataException(path);
     }
     if (_songData == null) {
@@ -165,7 +165,6 @@ class OpenSongSong {
 
     var possible = [];
     var seen = [];
-    bool dirty = false;
     // to compute the key:
     // for the first chord, compute the possible keys
     // for each subsequent chord, remove impossible keys until one remains

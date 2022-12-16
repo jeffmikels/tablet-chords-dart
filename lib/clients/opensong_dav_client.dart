@@ -50,7 +50,7 @@ class OpenSongDavClient extends SongsSetsClient {
   Future<T?> _loadFile<T>(FileInfo file) async {
     var cleanPath = Uri.decodeComponent(file.path);
     try {
-      print('Loading: ${cleanPath}');
+      print('Loading: $cleanPath');
       late String xmlString;
       if (useCache && cache.containsKey(cleanPath)) {
         xmlString = cache[cleanPath]!;
@@ -81,7 +81,7 @@ class OpenSongDavClient extends SongsSetsClient {
   }) async {
     List<Setlist> sets = [];
     List<FileInfo> files = await client.ls(path: 'Sets');
-    List<Future<Setlist?>> futures = [];
+    List<Future> futures = [];
     for (var f in files) {
       if (f.basename.startsWith('.')) continue;
       futures.add(_loadFile<Setlist>(f).then((e) {
@@ -141,7 +141,7 @@ class OpenSongDavClient extends SongsSetsClient {
   Future<List<Song>> getSongFolder(String fullPath) async {
     print('Loading Song Folder: $fullPath');
     List<Song> songs = [];
-    List<Future<Song?>> futures = [];
+    List<Future> futures = [];
     List<FileInfo> files = await client.ls(path: fullPath);
     for (var f in files) {
       if (f.basename.startsWith('.')) continue;

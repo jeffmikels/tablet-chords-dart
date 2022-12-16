@@ -50,6 +50,11 @@ class Setlist {
     }
   }
 
+  factory Setlist.fromPlanningCenterPlan(PcoServicesPlan plan) {
+    if (plan.title.isEmpty) plan.title = plan.dates;
+    return Setlist(plan.title, plan.id!, plan.lastTimeAt, description: plan.dates);
+  }
+
   Setlist(this.name, this.path, this.date, {this.description = ''});
 
   toJson() => {
@@ -89,8 +94,8 @@ class Song {
   bool isOpenSongFormat = false;
   bool get isChordProFormat => !isOpenSongFormat;
 
-  String get formattedCcli => ccli == '' ? '' : 'CCLI #${ccli}';
-  String get formattedCopyright => copyright == '' ? '' : 'Copyright ${copyright}';
+  String get formattedCcli => ccli == '' ? '' : 'CCLI #$ccli';
+  String get formattedCopyright => copyright == '' ? '' : 'Copyright $copyright';
 
   Song();
 
@@ -134,7 +139,7 @@ class Song {
     copyright = song.copyright;
 
     key = arrangement.chordChartKey;
-    bpm = arrangement.bpm;
+    bpm = arrangement.bpm.toDouble();
     lyrics = arrangement.chordChart;
 
     // determine if the lyrics are chordpro or opensong

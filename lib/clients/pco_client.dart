@@ -66,7 +66,10 @@ class PCOClient extends SongsSetsClient {
       ),
     );
     for (var plan in plans.items) {
-      var set = Setlist(plan.title, plan.apiPath, plan.lastTimeAt, description: plan.dates);
+      // var relPath = plan.apiPath.split('$serviceTypeId/').last;
+      if (plan.title.isEmpty) plan.title = plan.dates;
+
+      var set = Setlist.fromPlanningCenterPlan(plan);
       var songs = await plan.getItems(
         query: PcoServicesItemQuery(
           includeSong: true,
@@ -88,15 +91,35 @@ class PCOClient extends SongsSetsClient {
       sets.add(set);
     }
 
-    // await _batch(futures);
     return ClientResponse(sets, responseText: '');
   }
 
   /// `path` should NOT include 'Sets'
   @override
-  Future<Setlist?> getSetlist(String path, {bool withSongs = false}) async {
-    var realPath = 'Sets/$path';
-    // return await _load<Setlist>(realPath);
+  Future<Setlist?> getSetlist(String id, {bool withSongs = false}) async {
+    var set = await PcoServicesPlan.getFromServiceType(
+      serviceTypeId,
+      id: id,
+    );
+    if (set.isError) return null;
+    var plan = set.items.first;
+    var setlist = Setlist.fromPlanningCenterPlan(plan);
+    var items = await plan.getItems(query: PcoServicesItemQuery(includeArrangement: true, includeSong: true));
+    if (items.isError) return null;
+
+    for (var item in items.items) {
+      if (item.itemType == 'song') {
+        setlist.songs.add(
+          Song.fromPlanningCenterSong(
+            item.includedSong!.apiPath,
+            item.includedSong!.updatedAt,
+            item.includedSong!,
+            item.includedArrangement!,
+          ),
+        );
+      }
+    }
+    return setlist;
   }
 
   /// returns songs paginated

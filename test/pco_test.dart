@@ -7,7 +7,6 @@ import '../conf/conf.dart' as config;
 
 void main() async {
   PlanningCenter.init(config.pcoAppId, config.pcoSecret);
-  var sundayWorship = '1169425';
   var planId = '59506404';
 
   var client = PCOClient(config.pcoServiceTypeId);

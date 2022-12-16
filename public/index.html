@@ -74,7 +74,17 @@
 		.song h3.title {color:red;font-size:1.4em;margin-bottom:0;margin-top:15px;font-weight:900;}
 		
 		.controlbuttons {margin:10px 0;display:flex;}
-		.controlbuttons button {color:black;font-size:1vw;border-radius:6px;line-height:2vw;width:2vw;display:flex;align-content:center;justify-content: center;margin-right: 4px;}
+		.controlbuttons button {
+			color:black;
+			font-size:1.4vw;
+			border-radius:6px;
+			line-height:2vw;
+			width:2.6vw;
+			display:flex;
+			align-content:center;
+			justify-content: center;
+			margin-right: 0.5vw;
+		}
 		.transposebutton {background:#dd0;}
 		.nashvillebutton {background:#ad3b3b;}
 		.capobutton {background:#faf;}
@@ -177,7 +187,7 @@
 		<div id="content" v-show="!loading">
 			<ul v-if="!current_set" id="setlist">
 				<h3>Choose A Set</h3>
-				<li v-for="set in sets" @click="selectSet(set.name)">
+				<li v-for="set in sets" @click="selectSet(set.path)">
 					<span class="time">({{set.date|niceTime}})</span><br />
 					<span class="name">{{set.name}}</span>
 				</li>
@@ -653,13 +663,13 @@
 					await this.getSets();
 					window.history.pushState('','','#');
 				},
-				selectSet(set_name) {
-					window.history.pushState(set_name,set_name,`#${encodeURI(set_name)}`);
-					this.getSet(set_name);
+				selectSet(set_path) {
+					window.history.pushState(set_path,set_path,`#${encodeURI(set_path)}`);
+					this.getSet(set_path);
 				},
-				getSet(set_name, song_index = 0) {
+				getSet(set_path, song_index = 0) {
 					this.loading += 1;
-					let url = `${endpoint}/Sets/${set_name}`;
+					let url = `${endpoint}/Sets/${encodeURI(set_path)}`;
 					this.debug = 'loading';
 					axios.get(url)
 					.then((res)=>{

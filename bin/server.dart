@@ -234,7 +234,7 @@ FutureOr<Response> setsHandler(Request req) async {
     }
 
     if (set == null) {
-      return Response.notFound('SETLIST NOT FOUND: ${setPath} could not be found');
+      return Response.notFound('SETLIST NOT FOUND: $setPath could not be found');
     }
     return respondJsonOK(set);
   } else {
@@ -263,7 +263,7 @@ FutureOr<Response> songsHandler(Request req) async {
 
   // return a single song
   if (songFile.isNotEmpty) {
-    var song = await songsSetsClient.getSong('${songDir}/${songFile}');
+    var song = await songsSetsClient.getSong('$songDir/$songFile');
     if (song != null) {
       songsByPath[cacheKey] = song;
       return respondJsonOK(song);
@@ -278,7 +278,7 @@ FutureOr<Response> songsHandler(Request req) async {
     }
     return respondJsonOK(songs.responseData!);
   }
-  return Response.notFound('SONGS NOT FOUND: ${cacheKey}\n');
+  return Response.notFound('SONGS NOT FOUND: $cacheKey\n');
 }
 
 FutureOr<Response> rootHandler(Request req) {
@@ -333,13 +333,16 @@ void startServer() {
   // final staticHandler = createStaticHandler('static', defaultDocument: 'index.html', listDirectories: false);
   // final pipeline = Pipeline().addMiddleware(logRequests()).addHandler(_router);
 
-  var router = setupRoutes(config.serverDirectory.isEmpty ? '' : '/${config.serverDirectory}');
-  var handler = Cascade().add(webSocketHandler(wsManager.onConnect)).add(router).handler;
+  final router = setupRoutes(config.serverDirectory.isEmpty ? '' : '/${config.serverDirectory}');
+  final cascade = Cascade().add(webSocketHandler(wsManager.onConnect)).add(router);
+
+  // TODO: Add middleware to handle blacklist
+  final pipeline = Pipeline().addMiddleware(logRequests()).addHandler(cascade.handler);
 
   // For running in containers, we respect the PORT environment variable.
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? config.serverPort;
   final ip = InternetAddress.anyIPv4;
-  io.serve(handler, ip, port).then((server) {
+  io.serve(pipeline, ip, port).then((server) {
     print('Serving at http://${server.address.host}:${server.port}/${config.serverDirectory}');
   });
 }

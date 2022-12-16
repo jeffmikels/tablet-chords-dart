@@ -80,7 +80,7 @@ class WebSocketManager {
         var toControlSong = ws.data['song'];
         var toControlKey = ws.data['key'];
         if (toControlSet != null && toControlSong != null && toControlKey != null) {
-          if (controllers[sender] == toControlSet || true) {
+          if (controllers[sender] == toControlSet) {
             broadcast(ws, ignoreClients: [sender]);
           } else {
             sender.send(WebSocketMessage.error('YOU ARE NOT A CONTROLLER FOR THIS SET'));
