@@ -1,0 +1,13 @@
+[Unit]
+Description=Worship Chords Tablet Interface
+After=network.target
+
+[Service]
+# Environment=NODE_PORT=3001
+Type=simple
+User=lcc_web
+ExecStart=/home/lcc_web/web_apps/worshipchords/start.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

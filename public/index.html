@@ -76,14 +76,14 @@
 		.controlbuttons {margin:10px 0;display:flex;}
 		.controlbuttons button {
 			color:black;
-			font-size:1.4vw;
-			border-radius:6px;
-			line-height:2vw;
-			width:2.6vw;
 			display:flex;
 			align-content:center;
 			justify-content: center;
-			margin-right: 0.5vw;
+			font-size:1.2vw;
+			border-radius:6px;
+			line-height:2vw;
+			width:2vw;
+			margin-right: 4px;
 		}
 		.transposebutton {background:#dd0;}
 		.nashvillebutton {background:#ad3b3b;}
@@ -198,14 +198,13 @@
 				<div id="songs" :class="{nocolumns: !columns, columns: columns}">
 					<div class="song" v-for="song in current_songs">
 						<h3 class="title">{{song.title|cleantitle}}</h3>
+						<div id="alert" v-if="alert_message">
+							<span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
+						</div>
 						<div v-if="showchords">
-							
 							<div id="alert" v-if="show_alert && (song.capo || nashville) && current_song_index != null">
 								<span v-if="song.key">&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span>
 								<span v-if="song.capo > 0">&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span>
-							</div>
-							<div id="alert" v-if="alert_message">
-								<span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
 							</div>
 							
 							<div class="songmeta">
@@ -374,47 +373,7 @@
 			
 			window.requestAnimationFrame(metronomeLoop);
 		}
-		
-		// function scheduleClick(lasttime=null) {
-		// 	if (bpm <= 0) bpm = 12;
-		// 	if (lasttime == null) lasttime = Date.now();
-		// 	next_click = lasttime + 1000 * 60 / bpm;
-		// 	last_click = lasttime;
-		//
-		// 	clearTimeout(metronome_timer);
-		//
-		// 	// wait until next_click time and then
-		// 	// do a click and schedule the next one
-		// 	metronome_timer = setTimeout(()=>{
-		// 		doClick();
-		// 		scheduleClick(lasttime)
-		// 	}, next_click - lasttime);
-		// }
-		//
-		// function doDot(timestamp) {
-		// 	if (metronome_playing) {
-		// 		window.requestAnimationFrame(function(){doDot()});
-		// 		let now = Date.now();
-		// 		console.log('date.now ' + Date.now());
-		// 		console.log('now ' + now)
-		// 		console.log('next_click ' + next_click)
-		// 		console.log('next_click ' + window.next_click)
-		// 		if (now > next_click) now = next_click;
-		// 		let dot_ratio = (next_click - now) / (next_click - last_click);
-		// 		let dotpos = dot_max * dot_ratio;
-		// 		if (!dot_rightward) dotpos = dot_max - dotpos;
-		// 		if (dotpos < 0) {
-		// 			dotpos = 0;
-		// 			dot_rightward = true;
-		// 		} else if (dotpos > dot_max) {
-		// 			dotpos = dot_max;
-		// 			dot_rightward = false;
-		// 		}
-		// 		dot.style.left == dotpos + 'px';
-		// 	} else {
-		// 		dot.style.visibility = 'hidden';
-		// 	}
-		// }
+
 		
 		function doClick() {
 			doFlash();
@@ -475,8 +434,11 @@
 				songs: []
 			}
 		}
-		
-		var app = new Vue({
+
+		// to support older browsers, we still need to avoid
+		// nullish operators
+		let app;
+		app = new Vue({
 			el: '#app',
 			data: {
 				controlling: false,
@@ -568,10 +530,11 @@
 					return chordletters[target_key_index];
 				},
 				renotify(alert_message = null) {
-					let duration = 2000;
+					let duration = 3000;
 					if (alert_message != null) {
 						this.alert_message = alert_message;
-						duration = 6000;
+						that.$forceUpdate();
+						duration = 4000;
 					} else {
 						// will alert the user of the key and the capo settings
 						this.show_alert = true;
@@ -759,8 +722,8 @@
 				},
 				lyric_html(song, actually_plain=false) {
 					let html = '';
-					let transpose = song.transpose ?? 0;
-					let capo = song.capo ?? 0;
+					let transpose = song.transpose ? song.transpose : 0;
+					let capo = song.capo ? song.capo : 0;
 					let lines = song.lyrics.split('\n');
 					
 					// set up chord search regex
@@ -1110,7 +1073,7 @@
 					}
 				},
 			},
-			created: async function(){
+			created: async function() {
 				// these are immediate
 				this.loadSettings();
 
