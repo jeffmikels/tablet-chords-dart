@@ -84,6 +84,8 @@ class Song {
 
   String title = '';
   String lyrics = '';
+  String openSongLyrics = '';
+  String chordProLyrics = '';
   double bpm = 0;
   String key = 'A';
   String meter = '4/4';
@@ -102,7 +104,13 @@ class Song {
   Song.fromOpenSongXML(this.path, this.date, String xmlString) {
     fromOpenSongXML(xmlString);
   }
-  Song.fromPlanningCenterSong(this.path, this.date, PcoServicesSong song, PcoServicesArrangement arrangement) {
+
+  Song.fromPlanningCenterSong(
+    this.path,
+    this.date,
+    PcoServicesSong song,
+    PcoServicesArrangement arrangement,
+  ) {
     fromPlanningCenterSong(song, arrangement);
   }
 
@@ -115,6 +123,7 @@ class Song {
     ccli = other.ccli;
     writer = other.writer;
     copyright = other.copyright;
+    isOpenSongFormat = other.isOpenSongFormat;
   }
 
   void fromOpenSongXML(String xmlString) {
@@ -138,6 +147,7 @@ class Song {
     writer = song.author;
     copyright = song.copyright;
 
+    // all arrangements have these items at least
     key = arrangement.chordChartKey;
     bpm = arrangement.bpm.toDouble();
     lyrics = arrangement.chordChart;
@@ -150,6 +160,110 @@ class Song {
         break;
       }
     }
+
+    if (!isOpenSongFormat) {
+      lyrics = convertChordProToOpensong(lyrics);
+    }
+  }
+
+  /// the tablet interface does a better job with OpenSong style lyrics
+  /// because they can be displayed with a monospace font.
+  ///
+  /// Here is an example chordpro item
+  /// {<i>BPM 68</i>}
+  ///
+  /// {<i>THE QUARANTINE EDITION has female lead, and changes the melody some</i>}
+  /// {<i>MALE KEY C</i>}
+  /// {<i>FEMALE KEY G</i>}
+  /// {<i>starts on the 6</i>}
+  ///
+  /// KEY
+  /// [G]
+  ///
+  /// INTRO
+  /// [| Em \ C6 \ || G \ \ \ || Em \ C6 \ || G \ \ \ |]
+  ///
+  /// VERSE 1
+  /// [Em]   There's a grace when the [C6]heart is under [G]fire
+  /// [Em]   Another way when the [C6]walls are closing in[G]
+  /// [Em]   And when I look at the [C6]space between
+  /// Where I [G]used to be and this [D/G]reckoning
+  /// [Em]   I know I will [C6]never be alone[G]
+  ///
+  /// CHORUS 1
+  /// There was another in the [Em]fire s[C6]tanding next to m[G]e
+  /// ...
+  static String convertChordProToOpensong(String lyrics) {
+    /// https://pcoservices.zendesk.com/hc/en-us/articles/204262464#UUID-6da2e7d8-e30c-6831-96a0-d934f4dfabdb
+
+    var ignoreLines = <String>['TRANSPOSE', 'REDEFINE', 'COLUMN_BREAK', 'PAGE_BREAK'];
+    var commentRegex = RegExp('{+(.*)}+');
+    var htmlTagRegex = RegExp('<.*?>');
+    var sectionRegex = RegExp(r'^[A-Z 0-9]+$'); // headings are in all caps
+    var chordLineRegex = RegExp(r'^\[([^[]+?)\]$');
+    var res = <String>[];
+    for (var l in lyrics.split('\n')) {
+      l = l.trim(); // remove trailing whitespace like \r
+
+      // ignore certain lines
+      for (var il in ignoreLines) {
+        if (l.startsWith(il)) continue;
+      }
+
+      // handle comments and abort further processing
+      if (l.startsWith(commentRegex)) {
+        l = l.replaceAllMapped(commentRegex, (m) => m.group(1)!).replaceAll(htmlTagRegex, '');
+        res.add('; $l');
+        continue;
+      }
+
+      if (l.startsWith(sectionRegex)) {
+        res.add('[$l]');
+        continue;
+      }
+
+      // if there are no square brackets, add it as is
+      if (!l.contains('[')) {
+        res.add(' $l');
+        continue;
+      }
+
+      // if the line has brackets around the whole thing, it is a "chord line"
+      if (l.startsWith(chordLineRegex)) {
+        if (!l.contains(' ')) {
+          l = l.substring(1, l.length - 1);
+        }
+        res.add('.$l');
+        continue;
+      }
+
+      // if we have made it this far, we have a line with chords in it
+      var chordline = <String>['.'];
+      var lyricline = <String>[' '];
+      int chordLenCompensation = 0;
+      bool inChord = false;
+      for (var char in l.split('')) {
+        switch (char) {
+          case '[':
+            inChord = true;
+            chordLenCompensation = 0;
+            continue;
+          case ']':
+            inChord = false;
+            continue;
+        }
+        if (inChord) {
+          chordLenCompensation++;
+          chordline.add(char);
+        } else {
+          lyricline.add(char);
+          if (chordLenCompensation-- < 1) chordline.add(' ');
+        }
+      }
+      res.add(chordline.join());
+      res.add(lyricline.join());
+    }
+    return res.join('\n');
   }
 
   toJson() => {
@@ -165,6 +279,7 @@ class Song {
         'ccli': ccli,
         'formatted-ccli': formattedCcli,
         'formatted-copyright': formattedCopyright,
+        'format': isOpenSongFormat ? 'opensong' : 'chordpro',
         'abc': '', // TODO: add 'abc' field
       };
 

@@ -17,6 +17,8 @@ class PCOClient extends SongsSetsClient {
     }
   }
 
+  /// the _batch function is used to concurrently perform api requests
+  /// it's currently not being used
   Future<void> _batch(List<Future> futures, [int concurrent = 10]) async {
     if (futures.length < concurrent) {
       await Future.wait(futures);
@@ -28,25 +30,6 @@ class PCOClient extends SongsSetsClient {
       await _batch(futures);
     }
   }
-
-  // Future<T?> _load<T>(String fullPath) async {
-  //   try {
-  //     print('Loading: $fullPath');
-  //     var xmlString = await client.downloadToBinaryString(fullPath);
-  //     switch (T) {
-  //       case Setlist:
-  //         return Setlist.fromOpenSongXML(xmlString) as T;
-  //       case Song:
-  //         return Song.fromOpenSongXML(fullPath, xmlString) as T;
-  //       default:
-  //         return null;
-  //     }
-  //   } catch (e) {
-  //     print(e);
-  //     print('Failed to get data for $fullPath');
-  //     return null;
-  //   }
-  // }
 
   /// returns setlists paginated
   @override
@@ -94,7 +77,7 @@ class PCOClient extends SongsSetsClient {
     return ClientResponse(sets, responseText: '');
   }
 
-  /// `path` should NOT include 'Sets'
+  /// `id` refers to the PlanningCenter Plan id
   @override
   Future<Setlist?> getSetlist(String id, {bool withSongs = false}) async {
     var set = await PcoServicesPlan.getFromServiceType(
