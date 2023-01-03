@@ -5,11 +5,11 @@ publish_to: none
 # homepage: https://www.example.com
 
 environment:
-  sdk: '>=2.17.1 <3.0.0'
+  sdk: ">=2.17.1 <3.0.0"
 
 dependencies:
   args: ^2.0.0
-  planningcenter_api: ^1.1.1
+  planningcenter_api: ^1.2.1
   # planningcenter_api:
   #   path: /Users/Jeff/Development/@Dart/planningcenter_api
   shelf: ^1.1.0

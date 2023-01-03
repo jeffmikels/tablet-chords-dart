@@ -8,3 +8,4 @@ conf/conf.dart
 
 # secrets
 pco_credentials.json
+pubspec.lock
