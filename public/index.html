@@ -1093,7 +1093,8 @@
 				}
 
 				let urldata = window.location.href.split('/')
-				let wsserver = `ws://${urldata[2]}${endpoint}`
+				let schema = urldata[0].replace('http', 'ws');
+				let wsserver = `${schema}://${urldata[2]}${endpoint}`
 				// let server = head + endpoint + '/';
 				// server = server.replace('http', 'ws').replace();
 				this.ws = new WebSocket(wsserver);
