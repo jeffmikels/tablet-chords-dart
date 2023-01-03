@@ -582,7 +582,7 @@
 					if (n < 0) n = 0;
 					if (n < this.current_set.songs.length) {
 						this.current_song_index = n;
-						let set_name = this.current_set.name;
+						let set_name = this.current_set.path;
 						window.history.replaceState(set_name, set_name,`#${encodeURI(set_name)},${n+1}`);
 						this.renotify();
 					}
