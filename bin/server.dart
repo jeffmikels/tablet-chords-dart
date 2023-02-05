@@ -90,6 +90,7 @@ List<DescribedRoute> apiRoutes = [
   }),
 ];
 List<DescribedRoute> staticRoutes = [
+  DescribedRoute('', 'Redirect to /', redirectBuilder('${config.serverDirectory}/')),
   DescribedRoute('/', 'Root route. Serves index.html', rootHandler),
   DescribedRoute(
     '/help',
@@ -300,6 +301,10 @@ FutureOr<Response> songsHandler(Request req) async {
     return respondJsonOK(songs.responseData!);
   }
   return Response.notFound('SONGS NOT FOUND: $cacheKey\n');
+}
+
+FutureOr<Response> Function(Request) redirectBuilder(String target) {
+  return (Request req) => Response.seeOther(target);
 }
 
 FutureOr<Response> rootHandler(Request req) {

@@ -92,6 +92,7 @@ class Song {
   String writer = '';
   String copyright = '';
   String ccli = '';
+  String abc = '';
 
   bool isOpenSongFormat = false;
   bool get isChordProFormat => !isOpenSongFormat;
@@ -121,6 +122,7 @@ class Song {
     bpm = other.bpm;
     key = other.key;
     ccli = other.ccli;
+    abc = other.abc;
     writer = other.writer;
     copyright = other.copyright;
     isOpenSongFormat = other.isOpenSongFormat;
@@ -138,6 +140,7 @@ class Song {
     copyright = s.copyright;
 
     isOpenSongFormat = true;
+    findABC();
   }
 
   void fromPlanningCenterSong(PcoServicesSong song, PcoServicesArrangement arrangement) {
@@ -163,6 +166,16 @@ class Song {
 
     if (!isOpenSongFormat) {
       lyrics = convertChordProToOpensong(lyrics);
+    }
+    findABC();
+  }
+
+  findABC() {
+    var matches = RegExp(r'(%abc.*)', dotAll: true).allMatches(lyrics);
+    if (matches.isNotEmpty) abc = matches.first.group(1) ?? '';
+    if (abc.isNotEmpty) {
+      lyrics = lyrics.replaceAll(abc, '');
+      abc = abc.split('\n').map((e) => e.trim()).join('\n');
     }
   }
 
@@ -199,7 +212,7 @@ class Song {
     var ignoreLines = <String>['TRANSPOSE', 'REDEFINE', 'COLUMN_BREAK', 'PAGE_BREAK'];
     var commentRegex = RegExp('{+(.*)}+');
     var htmlTagRegex = RegExp('<.*?>');
-    var sectionRegex = RegExp(r'^[A-Z 0-9]+$'); // headings are in all caps
+    var sectionRegex = RegExp(r'^[^a-z\[]+$'); // headings are in all caps
     var chordLineRegex = RegExp(r'^\[([^[]+?)\]$');
     var res = <String>[];
     for (var l in lyrics.split('\n')) {
@@ -238,30 +251,64 @@ class Song {
       }
 
       // if we have made it this far, we have a line with chords in it
-      var chordline = <String>['.'];
-      var lyricline = <String>[' '];
-      int chordLenCompensation = 0;
-      bool inChord = false;
-      for (var char in l.split('')) {
-        switch (char) {
-          case '[':
-            inChord = true;
-            chordLenCompensation = 0;
-            continue;
-          case ']':
-            inChord = false;
-            continue;
+      var matches = RegExp(r'\[(.*?)\]').allMatches(l).toList();
+      var splits = l.split(RegExp(r'\[.*?\]'));
+
+      var chordLine = '.';
+      var lyricLine = ' ';
+
+      // add the lyrics before the first chord
+      var split = splits[0];
+      lyricLine += split;
+
+      for (var i = 1; i < splits.length; i++) {
+        // add the chord
+        var chord = matches.removeAt(0).group(1)!;
+
+        // always add a space after the previous chord
+        if (i > 1) chordLine += ' ';
+
+        // equalize both lines
+        while (chordLine.length < lyricLine.length) {
+          chordLine += ' ';
         }
-        if (inChord) {
-          chordLenCompensation++;
-          chordline.add(char);
-        } else {
-          lyricline.add(char);
-          if (chordLenCompensation-- < 1) chordline.add(' ');
+        while (lyricLine.length < chordLine.length) {
+          lyricLine += ' ';
         }
+
+        // now add the chord and the next lyric
+        chordLine += chord;
+        lyricLine += splits[i];
       }
-      res.add(chordline.join());
-      res.add(lyricline.join());
+      res.add(chordLine);
+      res.add(lyricLine);
+
+      // if we have made it this far, we have a line with chords in it
+      // var chordline = <String>['.'];
+      // var lyricline = <String>[' '];
+
+      // int chordLenCompensation = 0;
+      // bool inChord = false;
+      // for (var char in l.split('')) {
+      //   switch (char) {
+      //     case '[':
+      //       inChord = true;
+      //       chordLenCompensation = 0;
+      //       continue;
+      //     case ']':
+      //       inChord = false;
+      //       continue;
+      //   }
+      //   if (inChord) {
+      //     chordLenCompensation++;
+      //     chordline.add(char);
+      //   } else {
+      //     lyricline.add(char);
+      //     if (chordLenCompensation-- < 1) chordline.add(' ');
+      //   }
+      // }
+      // res.add(chordline.join());
+      // res.add(lyricline.join());
     }
     return res.join('\n');
   }
@@ -280,7 +327,7 @@ class Song {
         'formatted-ccli': formattedCcli,
         'formatted-copyright': formattedCopyright,
         'format': isOpenSongFormat ? 'opensong' : 'chordpro',
-        'abc': '', // TODO: add 'abc' field
+        'abc': abc,
       };
 
   String get json => cv.json.encode(toJson());

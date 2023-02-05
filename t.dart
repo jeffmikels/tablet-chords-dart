@@ -77,7 +77,7 @@ String convertChordProToOpensong(String lyrics) {
 }
 
 void main() {
-  print(convertChordProToOpensong(r'''
+  var lyrics = r'''
 {<i>BPM 68</i>}
 {<i>THE QUARANTINE EDITION has female lead, and changes the melody some</i>}
 {<i>MALE KEY C</i>}
@@ -96,7 +96,56 @@ VERSE 1
 [Em]   And when I look at the [C6]space between
 Where I [G]used to be and this [D/G]reckoning
 [Em]   I know I will [C6]never be alone[G]
-'''));
+
+
+VERSE 2
+I’ve still got [Bb]joy in chaos
+I’ve got [Gm7]peace that makes no [F]sense
+I won’t be [Eb]go-[Bb/D]ing [Cm7]un-[Bb]der
+I’m not [Gm7]held by my own [F]strength
+‘Cause I’ve built my [Eb/G]life on Jesus [Bb/D]
+He’s [Gm7]never [F/A]let [Bb]me [F]down
+He’s faithful in [Eb]every season [Bb/D]
+So [Gm7] why would He fail [F]now?
+
+''';
+  for (var l in lyrics.split('\n')) {
+    var matches = RegExp(r'\[(.*?)\]').allMatches(l).toList();
+    var splits = l.split(RegExp(r'\[.*?\]'));
+
+    // print(matches);
+    // print(splits);
+
+    var chordLine = '';
+    var lyricLine = '';
+
+    // add the lyrics before the first chord
+    var split = splits[0];
+    lyricLine += split;
+
+    for (var i = 1; i < splits.length; i++) {
+      // add the chord
+      var chord = matches.removeAt(0).group(1)!;
+
+      // always add a space after the previous chord
+      if (i > 1) chordLine += ' ';
+
+      // equalize both lines
+      while (chordLine.length < lyricLine.length) {
+        chordLine += ' ';
+      }
+      while (lyricLine.length < chordLine.length) {
+        lyricLine += ' ';
+      }
+
+      // now add the chord and the next lyric
+      chordLine += chord;
+      lyricLine += splits[i];
+    }
+    print(chordLine);
+    print(lyricLine);
+  }
+  // print(convertChordProToOpensong());
 }
 
 
