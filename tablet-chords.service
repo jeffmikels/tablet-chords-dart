@@ -1,0 +1,13 @@
+[Unit]
+Description=Tablet Chords
+After=network.target
+
+[Service]
+Type=simple
+User=USER
+WorkingDirectory=/home/USER/web_apps/tablet-chords-dart
+ExecStart=/home/USER/web_apps/tablet-chords-dart/start.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
