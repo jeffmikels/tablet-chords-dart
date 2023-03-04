@@ -37,9 +37,8 @@
         padding: 0;
       }
       body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
-          sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+          'Open Sans', 'Helvetica Neue', sans-serif;
         /* font-family:Muli,sans; */
         background: black;
         color: white;
@@ -84,7 +83,7 @@
       }
       .abc svg text {
         fill: #eee;
-        font-family: "Muli";
+        font-family: 'Muli';
         font-weight: 900;
       }
 
@@ -208,7 +207,7 @@
       }
 
       .lyrics {
-        font-family: "Inconsolata", "Fira Sans Mono", "Roboto Mono", monospace;
+        font-family: 'Inconsolata', 'Fira Sans Mono', 'Roboto Mono', monospace;
         margin: 10px 5px;
         font-weight: 400;
         letter-spacing: -0.03em;
@@ -366,29 +365,40 @@
         font-weight: 900;
       }
 
+      #songs {
+        margin-right: 40px;
+      }
       #nav-buttons button {
         cursor: pointer;
-        font-size: 50px;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.1);
         background: none;
         border: none;
         outline: none;
+        color: rgba(200, 200, 200, 0.2);
+        font-weight: 900;
+        font-size: 200px;
       }
-      #nav-buttons button.prev {
+      #nav-buttons {
         position: fixed;
-        left: 0;
-        top: 50%;
+        top: 30px;
+        left: calc(100vw - 80px);
+        right: 0px;
+        bottom: 30px;
+        width: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.3);
       }
-      #nav-buttons button.next {
-        position: fixed;
-        right: 0;
-        top: 50%;
-      }
-      #nav-buttons button.all {
-        position: fixed;
-        left: 50%;
-        top: 50%;
+      #nav-buttons button {
+        font-weight: 900;
+        font-size: 50px;
+        height: 25%;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 100px;
+        margin: 5px 0;
+        width: 60px;
+        height: 200px;
       }
       #debug {
         position: fixed;
@@ -431,6 +441,76 @@
       #flasher.in {
         opacity: 1;
       }
+      #setbox {
+        padding-top: 28px;
+      }
+      #songs {
+        padding: 3px 0 10px;
+      }
+      .song h3.title {
+        margin: 0;
+        padding: 0;
+      }
+      .header-bar {
+        box-sizing: border-box;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 28px;
+        padding: 4px 8px;
+        background: #333;
+        display: flex;
+        align-content: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #666;
+      }
+
+      .setname {
+        background: none;
+      }
+      .songnum {
+        background: none;
+      }
+
+      .songmeta {
+        font-weight: bold;
+      }
+
+      .controlbuttons button {
+        border: 3px solid white;
+        border-radius: 30px;
+        width: 70px;
+        background: none;
+        color: white;
+      }
+      .controlbuttons .transposebutton {
+        border-color: #dd0;
+      }
+      .controlbuttons .nashvillebutton {
+        border-color: #ad3b3b;
+      }
+      .controlbuttons .capobutton {
+        border-color: #faf;
+      }
+      .controlbuttons .metronomebutton {
+        border-color: #3287ff;
+      }
+      .controlbuttons .bpmbutton {
+        border-color: cyan;
+      }
+      .chord,
+      .chord-group {
+        letter-spacing: -1px;
+      }
+      .lyrics .section {
+        border: none;
+        border-top: 6px solid #222;
+        font-weight: 900;
+      }
+      a {
+        color: #f66;
+      }
     </style>
   </head>
   <!-- body needs an empty onclick to trigger click events on ios which we set later -->
@@ -452,10 +532,10 @@
           </li>
         </ul>
         <div id="setbox" v-if="current_set">
-          <div class="setname">
-            SET: {{current_set.name}} — SONG #{{current_song_index + 1}}
+          <div class="header-bar">
+            <div class="setname">SET: {{current_set.name}} — SONG #{{current_song_index + 1}}</div>
+            <div class="songnum">{{song_number}}</div>
           </div>
-          <div class="songnum">{{song_number}}</div>
           <div id="songs" :class="{nocolumns: !columns, columns: columns}">
             <div class="song" v-for="song in current_songs">
               <h3 class="title">{{song.title|cleantitle}}</h3>
@@ -463,60 +543,32 @@
                 <span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
               </div>
               <div v-if="showchords">
-                <div
-                  id="alert"
-                  v-if="show_alert && (song.capo || nashville) && current_song_index != null"
-                >
-                  <span v-if="song.key"
-                    >&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span
-                  >
-                  <span v-if="song.capo > 0"
-                    >&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span
-                  >
+                <div id="alert" v-if="show_alert && (song.capo || nashville) && current_song_index != null">
+                  <span v-if="song.key">&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span>
+                  <span v-if="song.capo > 0">&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span>
                 </div>
 
                 <div class="songmeta">
                   <span v-if="song.key"
                     >[ KEY: {{song | transposed_key}}
-                    <small v-if="song.transpose > 0"
-                      >({{song.transpose | nice_transpose}}) </small
-                    >]</span
+                    <small v-if="song.transpose > 0">({{song.transpose | nice_transpose}}) </small>]</span
                   >
                   <span v-if="song.capo"
-                    >[ CAPO: {{song | capo_key}}
-                    <small v-if="song.capo > 0">({{song.capo}}) </small>]</span
+                    >[ CAPO: {{song | capo_key}} <small v-if="song.capo > 0">({{song.capo}}) </small>]</span
                   >
                   <span v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
                   <!-- <span v-if="song.transpose > 0"></span> -->
                 </div>
                 <div v-if="song.key" class="controlbuttons">
-                  <button class="transposebutton" @click="transpose(song, -1)">
-                    &#8722;
-                  </button>
-                  <button class="transposebutton" @click="transpose(song, 1)">
-                    ＋
-                  </button>
-                  <button
-                    class="nashvillebutton"
-                    :class="{active:nashville}"
-                    @click="nashville = !nashville"
-                  >
-                    #
-                  </button>
-                  <button class="capobutton" @click="capo(song, -1)">
-                    &#8722;
-                  </button>
+                  <button class="transposebutton" @click="transpose(song, -1)">&#8722;</button>
+                  <button class="transposebutton" @click="transpose(song, 1)">＋</button>
+                  <button class="nashvillebutton" :class="{active:nashville}" @click="nashville = !nashville">#</button>
+                  <button class="capobutton" @click="capo(song, -1)">&#8722;</button>
                   <button class="capobutton" @click="capo(song, 1)">＋</button>
-                  <button
-                    class="metronomebutton"
-                    :class="{active:metronome_playing}"
-                    @click="toggle_metronome(song)"
-                  >
+                  <button class="metronomebutton" :class="{active:metronome_playing}" @click="toggle_metronome(song)">
                     M
                   </button>
-                  <button class="bpmbutton" @click="bpm(song, -1)">
-                    &#8722;
-                  </button>
+                  <button class="bpmbutton" @click="bpm(song, -1)">&#8722;</button>
                   <button class="bpmbutton" @click="bpm(song, 1)">＋</button>
                 </div>
               </div>
@@ -525,11 +577,7 @@
                 :class="{nochords:!showchords,nocomments:!showcomments}"
                 v-html="lyric_html(song)"
               ></div>
-              <div
-                class="abc"
-                v-html="abc_svg(song)"
-                v-if="song.abc && showchords"
-              ></div>
+              <div class="abc" v-html="abc_svg(song)" v-if="song.abc && showchords"></div>
               <div class="legal">
                 <div class="author">{{song.author}}</div>
                 <div class="copyright">{{song.copyright}}</div>
@@ -538,37 +586,16 @@
             </div>
           </div>
           <div id="buttons">
-            <button :class="{active: controlling}" @click="controlSet">
-              CONTROL
-            </button>
+            <button :class="{active: controlling}" @click="controlSet">CONTROL</button>
             <button :class="" @click="deselectSet">SETS</button>
-            <button v-if="theme == 'light'" @click="theme = 'dark'">
-              DARK
-            </button>
-            <button v-if="theme == 'dark'" @click="theme = 'light'">
-              LIGHT
-            </button>
-            <button
-              :class="{active:showchords}"
-              @click="showchords = ! showchords"
-            >
-              CHORDS
-            </button>
-            <button
-              :class="{active:showcomments}"
-              class="dense"
-              @click="showcomments = !showcomments"
-            >
-              NOTES
-            </button>
+            <button v-if="theme == 'light'" @click="theme = 'dark'">DARK</button>
+            <button v-if="theme == 'dark'" @click="theme = 'light'">LIGHT</button>
+            <button :class="{active:showchords}" @click="showchords = ! showchords">CHORDS</button>
+            <button :class="{active:showcomments}" class="dense" @click="showcomments = !showcomments">NOTES</button>
             <button @click="addColumn(1)">{{col_btn_label}}</button>
             <!-- <button class="dense" @click="fontSize = 18">FONT</button> -->
-            <button class="dense" style="width: 38px" @click="fontUp()">
-              A+
-            </button>
-            <button class="dense" style="width: 38px" @click="fontDown()">
-              A-
-            </button>
+            <button class="dense" style="width: 38px" @click="fontUp()">A+</button>
+            <button class="dense" style="width: 38px" @click="fontDown()">A-</button>
             &nbsp;&nbsp;|&nbsp;&nbsp;
             <button @click="copy">COPY</button>
 
@@ -601,7 +628,7 @@
       let dot_rightward = true;
       let dot_width = 26;
       let dot_max;
-      let dot = document.getElementById("dot"); // created outside of Vue, so it's safe to setup here
+      let dot = document.getElementById('dot'); // created outside of Vue, so it's safe to setup here
       let clickBuffer;
       let audioContext;
       let audioSource;
@@ -609,34 +636,33 @@
       let flasher;
 
       // [serverEndpoint] will be replaced by the server
-      const endpoint = "/[serverEndpoint]";
+      const endpoint = '/[serverEndpoint]';
 
-      const chordletters =
-        "A A# B C C# D D# E F F# G G# A Bb B C Db D Eb E F Gb G Ab".split(" ");
-      const scale_colors = ["", "m", "m", "", "", "m", "dim"];
+      const chordletters = 'A A# B C C# D D# E F F# G G# A Bb B C Db D Eb E F Gb G Ab'.split(' ');
+      const scale_colors = ['', 'm', 'm', '', '', 'm', 'dim'];
       const semitones_to_nashville = {
-        0: "1",
-        1: "2b",
-        2: "2",
-        3: "3b",
-        4: "3",
-        5: "4",
-        6: "5b",
-        7: "5",
-        8: "6b",
-        9: "6",
-        10: "7b",
-        11: "7",
+        0: '1',
+        1: '2b',
+        2: '2',
+        3: '3b',
+        4: '3',
+        5: '4',
+        6: '5b',
+        7: '5',
+        8: '6b',
+        9: '6',
+        10: '7b',
+        11: '7',
       };
 
-      window.addEventListener("resize", doResize);
-      window.addEventListener("load", doResize);
+      window.addEventListener('resize', doResize);
+      window.addEventListener('load', doResize);
 
       function loadClick(callback) {
         audioContext = new AudioContext();
         var req = new XMLHttpRequest();
-        req.open("GET", "./click.wav", true);
-        req.responseType = "arraybuffer";
+        req.open('GET', './click.wav', true);
+        req.responseType = 'arraybuffer';
         // Decode asynchronously
         req.onload = function () {
           audioContext.decodeAudioData(
@@ -653,7 +679,7 @@
 
       function stopMetronome() {
         metronome_playing = false;
-        if (do_dot) dot.style.visibility = "hidden";
+        if (do_dot) dot.style.visibility = 'hidden';
         // clearTimeout(metronome_timer);
         // clearTimeout(dot_timer);
       }
@@ -669,7 +695,7 @@
           });
         else {
           next_click = Date.now();
-          if (do_dot) dot.style.visibility = "visible";
+          if (do_dot) dot.style.visibility = 'visible';
           metronomeLoop();
         }
       }
@@ -695,7 +721,7 @@
             dotpos = dot_max;
             dot_rightward = false;
           }
-          dot.style.left = dotpos + "px";
+          dot.style.left = dotpos + 'px';
         }
 
         // handle audio clicks
@@ -717,25 +743,25 @@
       }
 
       function doFlash() {
-        if (!flasher) flasher = document.getElementById("flasher");
-        flasher.classList.add("in");
+        if (!flasher) flasher = document.getElementById('flasher');
+        flasher.classList.add('in');
         setTimeout(() => {
-          flasher.classList.add("will-fade-out");
-          flasher.classList.remove("in");
+          flasher.classList.add('will-fade-out');
+          flasher.classList.remove('in');
         }, 100);
         setTimeout(() => {
-          flasher.classList.remove("will-fade-out");
+          flasher.classList.remove('will-fade-out');
         }, 400);
       }
 
       function doResize() {
-        console.log("doing resize");
-        var el = document.getElementById("songs");
+        console.log('doing resize');
+        var el = document.getElementById('songs');
         if (el) {
-          document.body.style.height = "1px";
+          document.body.style.height = '1px';
           if (!app.columns || app.columns == 1) {
-            el.style.height = "";
-            el.style.columnWidth = "";
+            el.style.height = '';
+            el.style.columnWidth = '';
           } else {
             let colwidth;
             el.style.height = `${window.innerHeight - 40}px`;
@@ -749,21 +775,21 @@
 
       function Song() {
         return {
-          path: "",
-          title: "",
-          author: "",
-          ccli: "",
-          copyright: "",
-          key: "",
-          presentation: "",
-          lyrics: "",
+          path: '',
+          title: '',
+          author: '',
+          ccli: '',
+          copyright: '',
+          key: '',
+          presentation: '',
+          lyrics: '',
         };
       }
 
       function Set() {
         return {
-          path: "",
-          name: "",
+          path: '',
+          name: '',
           songs: [],
         };
       }
@@ -772,7 +798,7 @@
       // nullish operators
       let app;
       app = new Vue({
-        el: "#app",
+        el: '#app',
         data: {
           controlling: false,
           loading: 1,
@@ -781,41 +807,34 @@
           current_song_index: null,
           showall: false,
           allownav: true,
-          theme: "dark",
+          theme: 'dark',
           showchords: true,
           showcomments: true,
           columns: false,
           fontSize: 12,
-          debug: "",
+          debug: '',
           nashville: false,
           metronome_playing: false,
           alert_message: false,
         },
         computed: {
           current_song: function () {
-            if (this.current_set == false || this.current_set == null)
-              return {};
+            if (this.current_set == false || this.current_set == null) return {};
             if (this.current_song_index == null || this.showall) return {};
             else return this.current_set.songs[this.current_song_index];
           },
           current_songs: function () {
-            if (this.current_set == false || this.current_set == null)
-              return [];
-            if (this.current_song_index == null || this.showall)
-              return this.current_set.songs;
+            if (this.current_set == false || this.current_set == null) return [];
+            if (this.current_song_index == null || this.showall) return this.current_set.songs;
             else return [this.current_set.songs[this.current_song_index]];
           },
           col_btn_label: function () {
             if (this.columns) return `${this.columns} COLS`;
-            return "1 COL";
+            return '1 COL';
           },
           song_number() {
-            if (this.current_song_index == null || this.showall)
-              return "ALL SONGS";
-            else
-              return `SONG #${this.current_song_index + 1} / ${
-                this.current_set.songs.length
-              }`;
+            if (this.current_song_index == null || this.showall) return 'ALL SONGS';
+            else return `SONG #${this.current_song_index + 1} / ${this.current_set.songs.length}`;
           },
         },
         filters: {
@@ -833,8 +852,7 @@
           capo_key: function (song) {
             let note_index = chordletters.indexOf(song.key);
             if (note_index == -1) return song.key;
-            let target_key_index =
-              (note_index + song.transpose + 36 - song.capo) % 12;
+            let target_key_index = (note_index + song.transpose + 36 - song.capo) % 12;
             if (target_key_index != 9) target_key_index += 12;
             return chordletters[target_key_index];
           },
@@ -843,7 +861,7 @@
             return `${d.toDateString()}`;
           },
           cleantitle: function (s) {
-            return s.replace(/\s*=+\s*/g, "");
+            return s.replace(/\s*=+\s*/g, '');
           },
         },
         methods: {
@@ -851,17 +869,17 @@
             let txt = [];
             for (let song of this.current_songs) {
               txt.push(this.$options.filters.cleantitle(song.title));
-              if (song.author) txt.push("By " + song.author);
-              if (song.copyright) txt.push("(c) " + song.copyright);
-              if (song.ccli) txt.push("#" + song.ccli);
-              txt.push("");
+              if (song.author) txt.push('By ' + song.author);
+              if (song.copyright) txt.push('(c) ' + song.copyright);
+              if (song.ccli) txt.push('#' + song.ccli);
+              txt.push('');
               txt.push(this.lyric_plain(song));
-              txt.push("");
+              txt.push('');
             }
-            txt = txt.join("\n");
+            txt = txt.join('\n');
             console.log(txt);
             navigator.clipboard.writeText(txt);
-            this.renotify("copied to clipboard");
+            this.renotify('copied to clipboard');
           },
           transposed_key(song) {
             let note_index = chordletters.indexOf(song.key);
@@ -884,7 +902,7 @@
 
             if (window.alert_timer) clearTimeout(window.alert_timer);
             window.alert_timer = setTimeout(function () {
-              console.log("hiding alert again");
+              console.log('hiding alert again');
               that.show_alert = false;
               that.alert_message = false;
               that.$forceUpdate();
@@ -903,10 +921,7 @@
             let next_song =
               this.current_song_index == null
                 ? this.current_set.songs.length - 1
-                : (this.current_song_index +
-                    this.current_set.songs.length -
-                    1) %
-                  this.current_set.songs.length;
+                : (this.current_song_index + this.current_set.songs.length - 1) % this.current_set.songs.length;
             this.selectSong(next_song);
           },
           next() {
@@ -914,9 +929,7 @@
             window.scrollTo(0, 0);
             this.showall = false;
             let next_song =
-              this.current_song_index == null
-                ? 1
-                : (this.current_song_index + 1) % this.current_set.songs.length;
+              this.current_song_index == null ? 1 : (this.current_song_index + 1) % this.current_set.songs.length;
             this.selectSong(next_song);
           },
           selectSong(n) {
@@ -925,21 +938,14 @@
             if (n < this.current_set.songs.length) {
               this.current_song_index = n;
               let set_name = this.current_set.path;
-              window.history.replaceState(
-                set_name,
-                set_name,
-                `#${encodeURI(set_name)},${n + 1}`
-              );
+              window.history.replaceState(set_name, set_name, `#${encodeURI(set_name)},${n + 1}`);
               this.renotify();
             }
           },
           tap(e) {
-            if (e.target.tagName == "BUTTON" || e.target.tagName == "A") return;
+            if (e.target.tagName == 'BUTTON' || e.target.tagName == 'A') return;
             if (!this.current_set || !this.allownav) return;
-            if (
-              e.clientY > window.innerHeight / 10 &&
-              e.clientY < (window.innerHeight * 9) / 10
-            ) {
+            if (e.clientY > window.innerHeight / 10 && e.clientY < (window.innerHeight * 9) / 10) {
               let x = e.clientX;
               let thirdx = window.innerWidth / 3;
               if (x < thirdx) this.prev();
@@ -948,13 +954,13 @@
             }
           },
           requestRefresh() {
-            if (this.ws) this.ws.send({ type: "refresh", data: {} });
+            if (this.ws) this.ws.send({ type: 'refresh', data: {} });
             else axios.get(`${endpoint}/refresh`);
           },
           getSets() {
             return new Promise((resolve, reject) => {
               let url = `${endpoint}/Sets/`;
-              this.debug = "loading";
+              this.debug = 'loading';
               if (!this.current_set) this.loading += 1;
               axios
                 .get(url)
@@ -962,7 +968,7 @@
                   console.log(res);
                   res.data.sort((a, b) => (b.date < a.date ? -1 : 1));
                   this.sets = res.data;
-                  this.debug = "";
+                  this.debug = '';
                   if (!this.current_set) this.loading -= 1;
                 })
                 .catch((err) => {
@@ -976,20 +982,21 @@
           async deselectSet() {
             this.current_set = false;
             await this.getSets();
-            window.history.pushState("", "", "#");
+            window.history.pushState('', '', '#');
           },
           selectSet(set_path) {
-            window.history.pushState(
-              set_path,
-              set_path,
-              `#${encodeURI(set_path)}`
-            );
+            window.history.pushState(set_path, set_path, `#${encodeURI(set_path)}`);
             this.getSet(set_path);
           },
           getSet(set_path, song_index = 0) {
+            // leading slash
+            if (set_path[0] != '/') set_path = '/' + set_path;
+
+            // leading sets if needed
+            if (!set_path.match(/Sets\//)) set_path = 'Sets' + set_path;
             this.loading += 1;
-            let url = `${endpoint}/Sets/${encodeURI(set_path)}`;
-            this.debug = "loading";
+            let url = `${endpoint}${encodeURI(set_path)}`;
+            this.debug = 'loading';
             axios
               .get(url)
               .then((res) => {
@@ -1021,7 +1028,7 @@
 
                 this.current_set = res.data;
                 this.current_song_index = song_index;
-                this.debug = "";
+                this.debug = '';
                 this.loading -= 1;
                 this.renotify();
               })
@@ -1037,7 +1044,7 @@
             if (this.ws && this.controlling) {
               this.ws.send(
                 JSON.stringify({
-                  type: "key",
+                  type: 'key',
                   data: {
                     set: this.current_set.path,
                     song: this.current_song_index,
@@ -1076,17 +1083,17 @@
             this.fontSize--;
           },
           abc_svg(song) {
-            if (song.abc != "") return render_abc(song.abc);
-            return "";
+            if (song.abc != '') return render_abc(song.abc);
+            return '';
           },
           lyric_plain(song) {
             return this.lyric_html(song, true);
           },
           lyric_html(song, actually_plain = false) {
-            let html = "";
+            let html = '';
             let transpose = song.transpose ? song.transpose : 0;
             let capo = song.capo ? song.capo : 0;
-            let lines = song.lyrics.split("\n");
+            let lines = song.lyrics.split('\n');
 
             // set up chord search regex
             let cs = /(([ABCDEFG][b#]?)(m(?!a))?[^\s\/]*)(\/?)/g; // chords need whitespace or slash at end
@@ -1107,7 +1114,7 @@
               let m;
               let transposed = [];
               for (let line of lines) {
-                let transposed_line = "";
+                let transposed_line = '';
                 if (line.search(/^\./) == -1) {
                   transposed_line = line;
                 } else {
@@ -1125,12 +1132,12 @@
                     let cname = m[1]; // the full chord Ebmaj7
                     let source_chord = m[2]; // just the rank, Ab, etc.
                     let chord_index = chordletters.indexOf(source_chord);
-                    let has_bass = m[4] == "/";
+                    let has_bass = m[4] == '/';
 
                     let target_chord;
                     if (this.nashville) {
                       let semitones = (chord_index + 24 - key_index) % 12;
-                      target_chord = semitones_to_nashville[semitones] + "-";
+                      target_chord = semitones_to_nashville[semitones] + '-';
                     } else {
                       let target_index = (chord_index + realtranspose) % 12;
                       if (targetflats) target_index += 12;
@@ -1145,16 +1152,13 @@
 
                     // is this line as long as it should be?
                     let correct_length = cs.lastIndex - match.length;
-                    while (
-                      !next_chord_is_bass &&
-                      transposed_line.length < correct_length
-                    ) {
-                      transposed_line += " ";
+                    while (!next_chord_is_bass && transposed_line.length < correct_length) {
+                      transposed_line += ' ';
                     }
 
                     // replace the chord itself
                     transposed_line += full_chord;
-                    if (has_bass) transposed_line += "/";
+                    if (has_bass) transposed_line += '/';
                     next_chord_is_bass = has_bass;
 
                     cursor = cs.lastIndex;
@@ -1162,18 +1166,14 @@
                   }
                 }
                 // clean trailing '-' from nashville chords
-                if (this.nashville)
-                  transposed_line = transposed_line.replace(
-                    /-([^\d])|-$/g,
-                    "$1"
-                  );
+                if (this.nashville) transposed_line = transposed_line.replace(/-([^\d])|-$/g, '$1');
                 transposed.push(transposed_line);
               }
               lines = transposed;
             }
 
             // process all lyric lines
-            let chordline = "";
+            let chordline = '';
             let usedchords = true;
             let i = 0;
             while (i < lines.length) {
@@ -1181,77 +1181,70 @@
               let char = line.substring(0, 1);
               line = line.substring(1);
 
-              let classname = "";
+              let classname = '';
               switch (char) {
-                case ".":
+                case '.':
                   // did we already have a chord line in the buffer
                   // if so, dump that one first
-                  if (!usedchords && chordline != "") {
-                    if (actually_plain) html += chordline + "\n";
+                  if (!usedchords && chordline != '') {
+                    if (actually_plain) html += chordline + '\n';
                     else html += `<div class="chord">${chordline}</div>`;
                   }
-                  classname = "chord";
+                  classname = 'chord';
                   chordline = line;
-                  if (chordline == "") chordline = " ";
+                  if (chordline == '') chordline = ' ';
                   usedchords = false;
                   break;
-                case " ":
+                case ' ':
                   // only flag a line as a lyric line if it
                   // actually has lyric content
-                  if (!line.match(/^\s*$/)) classname = "lyric";
+                  if (!line.match(/^\s*$/)) classname = 'lyric';
                   break;
-                case ";":
-                  classname = "comment";
+                case ';':
+                  classname = 'comment';
 
                   // if the previous chordline has been used clear it out now
-                  if (usedchords) chordline = "";
+                  if (usedchords) chordline = '';
 
                   // convert hyperlinks in comments
-                  if (!actually_plain)
-                    line = line.replace(
-                      /(https?:[^ ]*)/,
-                      '<a href="$1">$1</a>'
-                    );
+                  if (!actually_plain) line = line.replace(/(https?:[^ ]*)/, '<a href="$1">$1</a>');
                   break;
-                case "[":
-                  classname = "section";
-                  if (usedchords) chordline = "";
+                case '[':
+                  classname = 'section';
+                  if (usedchords) chordline = '';
                   line = line.substr(0, line.length - 1);
-                  line = line.replace(/^p(\d*)$/i, "Pre Chorus $1");
-                  line = line.replace(/^v(\d*)$/i, "Verse $1");
-                  line = line.replace(/^c(\d*)$/i, "Chorus $1");
-                  line = line.replace(/^b(\d*)$/i, "Bridge $1");
-                  line = line.replace(/^i(\d*)$/i, "Instrumental $1");
-                  line = line.replace(/^t(\d*)$/i, "Tag $1");
+                  line = line.replace(/^p(\d*)$/i, 'Pre Chorus $1');
+                  line = line.replace(/^v(\d*)$/i, 'Verse $1');
+                  line = line.replace(/^c(\d*)$/i, 'Chorus $1');
+                  line = line.replace(/^b(\d*)$/i, 'Bridge $1');
+                  line = line.replace(/^i(\d*)$/i, 'Instrumental $1');
+                  line = line.replace(/^t(\d*)$/i, 'Tag $1');
                   line = line.toUpperCase().trim();
 
-                  if (actually_plain) line += ":";
+                  if (actually_plain) line += ':';
                   break;
-                case "-":
-                  if (usedchords) chordline = "";
-                  line = "";
+                case '-':
+                  if (usedchords) chordline = '';
+                  line = '';
                   break;
               }
 
               // start producing output
               switch (classname) {
-                case "chord":
+                case 'chord':
                   break;
-                case "lyric":
+                case 'lyric':
                   // if we aren't showing chords, replace all extra whitespace
                   if (!this.showchords) {
-                    line = line.replace(/^\s+/g, "");
-                    line = line.replace(/\s+/g, " ");
-                    line = line.replace(/\s+-\s+/g, "");
+                    line = line.replace(/^\s+/g, '');
+                    line = line.replace(/\s+/g, ' ');
+                    line = line.replace(/\s+-\s+/g, '');
                   }
                   if (!line.match(/^\s*$/)) {
-                    if (
-                      !usedchords ||
-                      (chordline && !chordline.match(/^\s*$/))
-                    ) {
+                    if (!usedchords || (chordline && !chordline.match(/^\s*$/))) {
                       if (actually_plain) {
-                        if (this.showchords) html += chordline + "\n";
-                        html += line + "\n";
+                        if (this.showchords) html += chordline + '\n';
+                        html += line + '\n';
                       } else {
                         html += `<div class="chord-group">`;
                         html += `<div class="chord">${chordline}</div>`;
@@ -1261,7 +1254,7 @@
                       usedchords = true;
                     } else {
                       if (actually_plain) {
-                        html += line + "\n";
+                        html += line + '\n';
                       } else {
                         html += `<div class="lyric">${line}</div>`;
                       }
@@ -1272,18 +1265,18 @@
                 default:
                   if (chordline && !usedchords) {
                     if (actually_plain) {
-                      if (this.showchords) html += chordline + "\n";
+                      if (this.showchords) html += chordline + '\n';
                     } else {
                       html += `<div class="chord">${chordline}</div>`;
                     }
                     usedchords = true;
                   }
-                  if (classname != "comment" || this.showcomments) {
+                  if (classname != 'comment' || this.showcomments) {
                     if (classname) {
-                      if (actually_plain) html += line + "\n";
+                      if (actually_plain) html += line + '\n';
                       else html += `<div class="${classname}">${line}</div>`;
                     } else {
-                      if (actually_plain) html += "\n";
+                      if (actually_plain) html += '\n';
                       else html += `<div class="blank">&nbsp;</div>`;
                     }
                   }
@@ -1293,7 +1286,7 @@
 
             // do we have an unused chord line?
             if (chordline && !usedchords) {
-              if (actually_plain) html += chordline + "\n";
+              if (actually_plain) html += chordline + '\n';
               else html += `<div class="chord">${chordline}</div>`;
             }
 
@@ -1309,7 +1302,7 @@
               fontSize: this.fontSize,
               nashville: this.nashville,
             };
-            localStorage.setItem("settings", JSON.stringify(settings));
+            localStorage.setItem('settings', JSON.stringify(settings));
 
             // set-specific transpose settings
             if (this.current_set) {
@@ -1335,7 +1328,7 @@
             let defaults = {
               showall: false,
               allownav: true,
-              theme: "dark",
+              theme: 'dark',
               showchords: true,
               showcomments: true,
               columns: false,
@@ -1346,36 +1339,36 @@
             // update defaults from query variables
             let m = window.location.search.match(/settings=([^&=]+)/);
             if (m) {
-              let settings = m[1].split(",");
+              let settings = m[1].split(',');
               for (let s of settings) {
                 switch (s) {
-                  case "nochords":
+                  case 'nochords':
                     defaults.showchords = false;
                     break;
-                  case "showall":
+                  case 'showall':
                     defaults.showall = true;
                     break;
-                  case "onecolumn":
+                  case 'onecolumn':
                     defaults.columns = false;
-                  case "nonav":
+                  case 'nonav':
                     defaults.showall = true;
                     defaults.allownav = false;
                     break;
-                  case "nocomments":
+                  case 'nocomments':
                     defaults.showcomments = false;
                     break;
-                  case "light":
-                    defaults.theme = "light";
+                  case 'light':
+                    defaults.theme = 'light';
                     break;
-                  case "dark":
-                    defaults.theme = "dark";
+                  case 'dark':
+                    defaults.theme = 'dark';
                     break;
                 }
               }
             }
 
             // update defaults from localStorage
-            let res = localStorage.getItem("settings");
+            let res = localStorage.getItem('settings');
             if (res) {
               try {
                 res = JSON.parse(res);
@@ -1385,20 +1378,12 @@
 
               // never save the showall or allownav settings
               defaults.theme = res.theme ? res.theme : defaults.theme;
-              defaults.showchords = res.showchords
-                ? res.showchords
-                : defaults.showchords;
-              defaults.showcomments = res.showcomments
-                ? res.showcomments
-                : defaults.showcomments;
+              defaults.showchords = res.showchords ? res.showchords : defaults.showchords;
+              defaults.showcomments = res.showcomments ? res.showcomments : defaults.showcomments;
               defaults.columns = res.columns ? res.columns : defaults.columns;
               if (defaults.columns == 1) defaults.columns = false;
-              defaults.fontSize = res.fontSize
-                ? res.fontSize
-                : defaults.fontSize;
-              defaults.nashville = res.nashville
-                ? res.nashville
-                : defaults.nashville;
+              defaults.fontSize = res.fontSize ? res.fontSize : defaults.fontSize;
+              defaults.nashville = res.nashville ? res.nashville : defaults.nashville;
             }
 
             // finalize settings
@@ -1417,7 +1402,7 @@
           // hash check is used for location settings only
           async hashCheck() {
             if (window.location.hash.length > 1) {
-              let hashdata = window.location.hash.replace("#", "").split(",");
+              let hashdata = window.location.hash.replace('#', '').split(',');
               console.log(hashdata);
               let set_name = hashdata.shift();
               let song_index = 0;
@@ -1431,8 +1416,7 @@
           toggle_metronome(song) {
             if (metronome_playing) stopMetronome();
             else {
-              if (!song && this.current_songs.length > 0)
-                song = this.current_songs[0];
+              if (!song && this.current_songs.length > 0) song = this.current_songs[0];
               if (!song) return;
               startMetronome(song.bpm);
             }
@@ -1445,11 +1429,54 @@
               if (this.ws) {
                 this.ws.send(
                   JSON.stringify({
-                    type: "control",
+                    type: 'control',
                     data: { set: this.current_set.path },
                   })
                 );
               }
+            }
+          },
+          handleKey(e) {
+            // ignore during development
+            if (window.devel) return;
+
+            // ignore repeated keys
+            if (e.repeat) return;
+
+            console.log('disable key event hijacking by setting window.devel = true');
+            console.log(e);
+            switch (e.code) {
+              case ' ':
+              // keyCode 32
+              case 'ArrowRight':
+                // keyCode 39
+                if (this.allownav) this.next();
+                e.preventDefault(); // don't scroll the screen on arrow key or space
+                break;
+              case 'ArrowLeft':
+                // keyCode 37
+                if (this.allownav) this.prev();
+                e.preventDefault(); // don't scroll the screen on arrow key
+                break;
+              case 'KeyM':
+                // keyCode 77
+                this.toggle_metronome();
+                break;
+              case 'KeyN':
+                this.nashville = !this.nashville;
+                this.renotify();
+                break;
+              case 'Minus':
+                break;
+              case 'Equal':
+                break;
+              default:
+                // numbers from 1-0
+                if (e.keyCode >= 48 && e.keyCode <= 57) {
+                  let song_index = e.keyCode - 48 - 1; // 1 selects song 0, 0 should select song 10
+                  if (song_index < 0) song_index = 10;
+                  if (this.allownav) this.selectSong(song_index);
+                }
             }
           },
         },
@@ -1462,25 +1489,25 @@
           this.hashCheck();
 
           window.devel = false;
-          window.addEventListener("popstate", (e) => {
+          window.addEventListener('popstate', (e) => {
             this.current_set = false;
           });
 
           if (this.allownav) {
-            document.body.addEventListener("tap", (e) => {
+            document.body.addEventListener('tap', (e) => {
               this.tap(e);
               e.stopPropagation();
             });
-            document.body.addEventListener("click", (e) => {
+            document.body.addEventListener('click', (e) => {
               this.tap(e);
               e.stopPropagation();
             });
           }
 
-          let urldata = window.location.href.split("/");
-          let schema = urldata[0].replace("http", "ws");
+          let urldata = window.location.href.split('/');
+          let schema = urldata[0].replace('http', 'ws');
           let wsserver = `${schema}//${urldata[2]}${endpoint}`;
-          if (!wsserver.endsWith("/")) wsserver += "/";
+          if (!wsserver.endsWith('/')) wsserver += '/';
           // let server = head + endpoint + '/';
           // server = server.replace('http', 'ws').replace();
           this.ws = new WebSocket(wsserver);
@@ -1489,17 +1516,17 @@
             let { type, data } = JSON.parse(msg.data);
             console.log(data);
             switch (type) {
-              case "refresh":
+              case 'refresh':
                 this.getSets();
                 break;
-              case "setlists":
+              case 'setlists':
                 data.sets.sort((a, b) => (b.date < a.date ? -1 : 1));
                 this.sets = data.sets;
                 break;
-              case "alert":
+              case 'alert':
                 this.renotify(data.text);
                 break;
-              case "key":
+              case 'key':
                 let { set, song, key } = data;
                 if (set == this.current_set.path) {
                   let current_key = this.current_set.songs[song].key;
@@ -1510,12 +1537,12 @@
                 }
                 this.save();
                 break;
-              case "control-allow":
+              case 'control-allow':
                 if (data.set == this.current_set.path) {
                   this.controlling = true;
                 }
                 break;
-              case "control-stopped":
+              case 'control-stopped':
                 if (data.set == this.current_set.path) {
                   this.controlling = false;
                 }
@@ -1523,60 +1550,12 @@
             }
           };
 
-          window.addEventListener("keydown", (e) => {
-            // ignore during development
-            if (window.devel) return;
-
-            // ignore repeated keys
-            if (e.repeat) return;
-
-            console.log(
-              "disable key event hijacking by setting window.devel = true"
-            );
-            console.log(e);
-            switch (e.code) {
-              case " ":
-              // keyCode 32
-              case "ArrowRight":
-                // keyCode 39
-                if (this.allownav) this.next();
-                e.preventDefault(); // don't scroll the screen on arrow key or space
-                break;
-              case "ArrowLeft":
-                // keyCode 37
-                if (this.allownav) this.prev();
-                e.preventDefault(); // don't scroll the screen on arrow key
-                break;
-              case "KeyM":
-                // keyCode 77
-                this.toggle_metronome();
-                break;
-              case "KeyN":
-                this.nashville = !this.nashville;
-                this.renotify();
-                break;
-              case "Minus":
-                break;
-              case "Equal":
-                break;
-              default:
-                // numbers from 1-0
-                if (e.keyCode >= 48 && e.keyCode <= 57) {
-                  let song_index = e.keyCode - 48 - 1; // 1 selects song 0, 0 should select song 10
-                  if (song_index < 0) song_index = 10;
-                  if (this.allownav) this.selectSong(song_index);
-                }
-            }
-          });
+          window.addEventListener('keydown', this.handleKey);
           this.loading -= 1;
         },
         updated: function () {
           // update the global metronome bpm
-          if (
-            this.current_songs &&
-            this.current_songs.length > 0 &&
-            this.current_songs[0].bpm > 0
-          )
+          if (this.current_songs && this.current_songs.length > 0 && this.current_songs[0].bpm > 0)
             bpm = this.current_songs[0].bpm;
           doResize();
           this.save();
@@ -1586,14 +1565,14 @@
 
       /* SETUP ABC CONVERSION */
       function render_abc(content) {
-        var html = "";
+        var html = '';
         try {
           // to render multiple tunes, we have multiple objects
           var els = [];
           var midiels = [];
           for (var i = 0; i < 10; i++) {
-            els.push(document.createElement("div"));
-            midiels.push(document.createElement("div"));
+            els.push(document.createElement('div'));
+            midiels.push(document.createElement('div'));
           }
           // until this actually works, we just output raw text
           // return '<abc>' + content + '</abc>';

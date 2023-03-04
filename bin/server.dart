@@ -10,6 +10,7 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 
 import 'package:tablet_chords_dart/classes/models.dart';
 import 'package:tablet_chords_dart/clients/opensong_dav_client.dart';
+import 'package:tablet_chords_dart/clients/opensong_local_client.dart';
 import 'package:tablet_chords_dart/clients/pco_client.dart';
 import 'package:tablet_chords_dart/handlers/routes.dart';
 import 'package:tablet_chords_dart/ws/wsmanager.dart';
@@ -238,11 +239,11 @@ FutureOr<Response> setsHandler(Request req) async {
     // get a single setlist
     Setlist? set = await songsSetsClient.getSetlist(setPath, withSongs: true);
     if (set == null) {
-      return Response.notFound('SETLIST NOT FOUND: $setPath could not be found');
+      return Response.notFound('SETLIST NOT FOUND: $setPath could not be found\n');
     }
 
     if (set.songs.isEmpty) {
-      return Response.notFound('SETLIST $setPath CONTAINS NO SONGS');
+      return Response.notFound('SETLIST $setPath CONTAINS NO SONGS\n');
     }
 
     // cache this result for later
@@ -326,7 +327,7 @@ Future<void> primeSetlistCache() async {
       var path = Uri.decodeComponent(sl.path);
 
       // we don't want to send the webdav information over the line
-      if (config.usedav) sl.path = path.replaceAll('${config.davDir}Sets/', '');
+      if (songsSetsClient is OpenSongDavClient) sl.path = path.replaceAll('${config.davDir}Sets/', '');
 
       if (sl.songs.isEmpty) continue;
       setsByPath[path] = sl;
@@ -341,10 +342,16 @@ Future primeSongCache() async {}
 
 // setup functions
 void setupClient() {
-  if (config.usedav) {
-    songsSetsClient = OpenSongDavClient(config.davUrl, config.davDir, config.davUsername, config.davPassword);
-  } else {
-    songsSetsClient = PCOClient(config.pcoServiceTypeId, config.pcoAppId, config.pcoSecret);
+  switch (config.mode) {
+    case config.Mode.local:
+      songsSetsClient = OpenSongLocalClient(config.localDir);
+      break;
+    case config.Mode.dav:
+      songsSetsClient = OpenSongDavClient(config.davUrl, config.davDir, config.davUsername, config.davPassword);
+      break;
+    case config.Mode.pco:
+      songsSetsClient = PCOClient(config.pcoServiceTypeId, config.pcoAppId, config.pcoSecret);
+      break;
   }
   songsSetsClient.useCache = false;
   wsManager = WebSocketManager(songsSetsClient);
