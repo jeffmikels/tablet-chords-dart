@@ -449,6 +449,7 @@
       }
       .song h3.title {
         margin: 0;
+        margin-left: 4px;
         padding: 0;
       }
       .header-bar {
@@ -475,6 +476,7 @@
 
       .songmeta {
         font-weight: bold;
+        margin-left: 4px;
       }
 
       .controlbuttons button {
@@ -538,38 +540,42 @@
           </div>
           <div id="songs" :class="{nocolumns: !columns, columns: columns}">
             <div class="song" v-for="song in current_songs">
-              <h3 class="title">{{song.title|cleantitle}}</h3>
               <div id="alert" v-if="alert_message">
                 <span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
               </div>
-              <div v-if="showchords">
-                <div id="alert" v-if="show_alert && (song.capo || nashville) && current_song_index != null">
-                  <span v-if="song.key">&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span>
-                  <span v-if="song.capo > 0">&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span>
-                </div>
+              <div class="metabox">
+                <h3 class="title">{{song.title|cleantitle}}</h3>
+                <div v-if="showchords">
+                  <div id="alert" v-if="show_alert && (song.capo || nashville) && current_song_index != null">
+                    <span v-if="song.key">&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span>
+                    <span v-if="song.capo > 0">&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span>
+                  </div>
 
-                <div class="songmeta">
-                  <span v-if="song.key"
-                    >[ KEY: {{song | transposed_key}}
-                    <small v-if="song.transpose > 0">({{song.transpose | nice_transpose}}) </small>]</span
-                  >
-                  <span v-if="song.capo"
-                    >[ CAPO: {{song | capo_key}} <small v-if="song.capo > 0">({{song.capo}}) </small>]</span
-                  >
-                  <span v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
-                  <!-- <span v-if="song.transpose > 0"></span> -->
-                </div>
-                <div v-if="song.key" class="controlbuttons">
-                  <button class="transposebutton" @click="transpose(song, -1)">&#8722;</button>
-                  <button class="transposebutton" @click="transpose(song, 1)">＋</button>
-                  <button class="nashvillebutton" :class="{active:nashville}" @click="nashville = !nashville">#</button>
-                  <button class="capobutton" @click="capo(song, -1)">&#8722;</button>
-                  <button class="capobutton" @click="capo(song, 1)">＋</button>
-                  <button class="metronomebutton" :class="{active:metronome_playing}" @click="toggle_metronome(song)">
-                    M
-                  </button>
-                  <button class="bpmbutton" @click="bpm(song, -1)">&#8722;</button>
-                  <button class="bpmbutton" @click="bpm(song, 1)">＋</button>
+                  <div class="songmeta">
+                    <span v-if="song.key"
+                      >[ KEY: {{song | transposed_key}}
+                      <small v-if="song.transpose > 0">({{song.transpose | nice_transpose}}) </small>]</span
+                    >
+                    <span v-if="song.capo"
+                      >[ CAPO: {{song | capo_key}} <small v-if="song.capo > 0">({{song.capo}}) </small>]</span
+                    >
+                    <span v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
+                    <!-- <span v-if="song.transpose > 0"></span> -->
+                  </div>
+                  <div v-if="song.key" class="controlbuttons">
+                    <button class="transposebutton" @click="transpose(song, -1)">&#8722;</button>
+                    <button class="transposebutton" @click="transpose(song, 1)">＋</button>
+                    <button class="nashvillebutton" :class="{active:nashville}" @click="nashville = !nashville">
+                      #
+                    </button>
+                    <button class="capobutton" @click="capo(song, -1)">&#8722;</button>
+                    <button class="capobutton" @click="capo(song, 1)">＋</button>
+                    <button class="metronomebutton" :class="{active:metronome_playing}" @click="toggle_metronome(song)">
+                      M
+                    </button>
+                    <button class="bpmbutton" @click="bpm(song, -1)">&#8722;</button>
+                    <button class="bpmbutton" @click="bpm(song, 1)">＋</button>
+                  </div>
                 </div>
               </div>
               <div
@@ -634,6 +640,8 @@
       let audioSource;
       let bpm = 1;
       let flasher;
+      let colWidth;
+      let colSnapWidth;
 
       // [serverEndpoint] will be replaced by the server
       const endpoint = '/[serverEndpoint]';
@@ -763,10 +771,10 @@
             el.style.height = '';
             el.style.columnWidth = '';
           } else {
-            let colwidth;
             el.style.height = `${window.innerHeight - 40}px`;
-            colwidth = window.innerWidth / (app.columns + 0.5);
-            el.style.columnWidth = `${colwidth}px`;
+            colWidth = window.innerWidth / (app.columns + 0.5);
+            el.style.columnWidth = `${colWidth}px`;
+            colSnapWidth = window.innerWidth / app.columns;
           }
         }
         // change the maximum value of the metronome dot
@@ -993,7 +1001,7 @@
             if (set_path[0] != '/') set_path = '/' + set_path;
 
             // leading sets if needed
-            if (!set_path.match(/Sets\//)) set_path = 'Sets' + set_path;
+            if (!set_path.match(/Sets\//)) set_path = '/Sets' + set_path;
             this.loading += 1;
             let url = `${endpoint}${encodeURI(set_path)}`;
             this.debug = 'loading';
@@ -1241,7 +1249,7 @@
                     line = line.replace(/\s+-\s+/g, '');
                   }
                   if (!line.match(/^\s*$/)) {
-                    if (!usedchords || (chordline && !chordline.match(/^\s*$/))) {
+                    if (!usedchords && chordline && !chordline.match(/^\s*$/)) {
                       if (actually_plain) {
                         if (this.showchords) html += chordline + '\n';
                         html += line + '\n';
@@ -1595,6 +1603,29 @@
         }
         return html;
       }
+
+      // handle scroll snapping
+      let isScrolling = false;
+      let scrollTimer;
+      let lastX = 0;
+      let selfScroll = false;
+      window.addEventListener('scroll', () => {
+        if (selfScroll) return;
+        let newX = window.scrollX;
+        if (lastX == newX) return;
+        lastX = newX;
+        isScrolling = true;
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(async () => {
+          let realColWidth = document.getElementsByClassName('metabox')[0].offsetWidth;
+          console.log('scroll is done');
+          isScrolling = false;
+          let snapColumn = Math.round(window.scrollX / realColWidth);
+          selfScroll = true;
+          await window.scrollTo({ left: snapColumn * realColWidth, behavior: 'smooth' });
+          selfScroll = false;
+        }, 200);
+      });
     </script>
   </body>
 </html>

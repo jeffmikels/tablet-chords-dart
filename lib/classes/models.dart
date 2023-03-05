@@ -183,6 +183,8 @@ class Song {
   /// because they can be displayed with a monospace font.
   ///
   /// Here is an example chordpro item
+  ///
+  /// ```plain
   /// {<i>BPM 68</i>}
   ///
   /// {<i>THE QUARANTINE EDITION has female lead, and changes the melody some</i>}
@@ -205,6 +207,7 @@ class Song {
   ///
   /// CHORUS 1
   /// There was another in the [Em]fire s[C6]tanding next to m[G]e
+  /// ```
   /// ...
   static String convertChordProToOpensong(String lyrics) {
     /// https://pcoservices.zendesk.com/hc/en-us/articles/204262464#UUID-6da2e7d8-e30c-6831-96a0-d934f4dfabdb
@@ -215,6 +218,7 @@ class Song {
     var sectionRegex = RegExp(r'^[^a-z\[]+$'); // headings are in all caps
     var chordLineRegex = RegExp(r'^\[([^[]+?)\]$');
     var res = <String>[];
+    var needBlankChordLine = false; //
     for (var l in lyrics.split('\n')) {
       l = l.trim(); // remove trailing whitespace like \r
 
@@ -230,12 +234,14 @@ class Song {
         continue;
       }
 
+      // handle section lines and then continue
       if (l.startsWith(sectionRegex)) {
         res.add('[$l]');
         continue;
       }
 
       // if there are no square brackets, add it as is
+      // or maybe add a blank line first
       if (!l.contains('[')) {
         res.add(' $l');
         continue;
