@@ -851,17 +851,19 @@
             else return `-${12 - num}`;
           },
           transposed_key: function (song) {
+            let has_sharp = song.key.match(/#/);
             let note_index = chordletters.indexOf(song.key);
             if (note_index == -1) return song.key;
             let target_key_index = (note_index + song.transpose) % 12;
-            if (target_key_index != 9) target_key_index += 12;
+            if (!has_sharp && target_key_index != 9) target_key_index += 12;
             return chordletters[target_key_index];
           },
           capo_key: function (song) {
+            let has_sharp = song.key.match(/#/);
             let note_index = chordletters.indexOf(song.key);
             if (note_index == -1) return song.key;
             let target_key_index = (note_index + song.transpose + 36 - song.capo) % 12;
-            if (target_key_index != 9) target_key_index += 12;
+            if (!has_sharp && target_key_index != 9) target_key_index += 12;
             return chordletters[target_key_index];
           },
           niceTime: function (i) {
