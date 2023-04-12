@@ -4,6 +4,28 @@ import 'package:xml/xml.dart';
 import 'opensong.dart';
 import 'dart:convert' as cv;
 
+var keys = 'A,Bb,B,C,Db,D,Eb,E,F,Gb,G,Ab,A,A#,B,C,C#,D,D#,E,F,F#,G,G#'.split(',');
+int keyDiff(String start, String end) {
+  var ai = keys.indexOf(start);
+  var bi = keys.indexOf(end);
+  if (ai == -1 || bi == -1) return 0;
+  // add 24 to the difference to ensure a positive number
+  // then mod by 12
+  return (24 + bi - ai) % 12;
+}
+
+String transposeChords(String string, int transpose, [bool useFlats = true]) {
+  return string.replaceAllMapped(RegExp(r'(\b)([A-G][b#]?)'), (match) {
+    var boundary = match.group(1)!;
+    var orig = match.group(2)!;
+    var i = keys.indexOf(orig);
+    if (i == -1) return boundary + orig;
+    var newIndex = (i + transpose) % 12;
+    if (!useFlats) newIndex += 12;
+    return boundary + keys[newIndex];
+  });
+}
+
 class Setlist {
   String path = '';
   String name = '';
@@ -110,9 +132,10 @@ class Song {
     this.path,
     this.date,
     PcoServicesSong song,
-    PcoServicesArrangement arrangement,
-  ) {
-    fromPlanningCenterSong(song, arrangement);
+    PcoServicesArrangement arrangement, [
+    PcoServicesKey? key,
+  ]) {
+    fromPlanningCenterSong(song, arrangement, key);
   }
 
   void copyFrom(Song other) {
@@ -143,7 +166,7 @@ class Song {
     findABC();
   }
 
-  void fromPlanningCenterSong(PcoServicesSong song, PcoServicesArrangement arrangement) {
+  void fromPlanningCenterSong(PcoServicesSong song, PcoServicesArrangement arrangement, [PcoServicesKey? planKey]) {
     loaded = true;
     title = song.title;
     ccli = song.ccliNumber.toString();
@@ -151,9 +174,17 @@ class Song {
     copyright = song.copyright;
 
     // all arrangements have these items at least
-    key = arrangement.chordChartKey;
     bpm = arrangement.bpm.toDouble();
-    lyrics = arrangement.chordChart;
+    lyrics = arrangement.chordChart.replaceAll('♭', 'b');
+
+    // sometimes the plan key is different from the chord chart key
+    // and planning center doesn't do the transposing for us
+    // over the API even though they do in the browser UI
+    var chartKey = arrangement.chordChartKey;
+    var arrangementKey = planKey?.startingKey ?? chartKey;
+    var transpose = keyDiff(chartKey, arrangementKey);
+    var useFlats = arrangementKey.contains('b');
+    key = arrangementKey;
 
     // determine if the lyrics are chordpro or opensong
     // if any line begins with a `.` or a `;`, then treat it as opensong format
@@ -166,6 +197,16 @@ class Song {
 
     if (!isOpenSongFormat) {
       lyrics = convertChordProToOpensong(lyrics);
+    }
+    if (transpose > 0) {
+      var lines = <String>[];
+      for (var line in lyrics.split('\n')) {
+        if (line.startsWith('.')) {
+          line = transposeChords(line, transpose, useFlats);
+        }
+        lines.add(line);
+      }
+      lyrics = lines.join('\n');
     }
     findABC();
   }
