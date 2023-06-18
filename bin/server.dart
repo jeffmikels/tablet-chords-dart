@@ -84,7 +84,7 @@ List<DescribedRoute> apiRoutes = [
       queryParams: setQueryParams),
   // DescribedRoute('/Songs/', 'serves a list of all available songs', songsHandler),
   // DescribedRoute('/Songs/<dir>/<song>', 'serves an individual song', songsHandler),
-  DescribedRoute('/alert', 'Sends an alert message to connected tablets', alertsHandler),
+  DescribedRoute('/alert', 'Sends an alert message to connected tablets with query variable `text`', alertsHandler),
   DescribedRoute('/refresh', 'refreshes the internal setlist cache', (req) {
     primeSetlistCache();
     return respondJsonOK(WebSocketMessage('info', {'text': 'refreshing'}));
@@ -104,8 +104,8 @@ List<DescribedRoute> staticRoutes = [
 
 // Configure documentation.
 String help() {
-  var staticHelp = staticRoutes.map((route) => route.toString()).join('\n');
-  var apiHelp = apiRoutes.map((route) => route.toString()).join('\n');
+  var staticHelp = staticRoutes.map((route) => route.toString()).join('\n\n');
+  var apiHelp = apiRoutes.map((route) => route.toString()).join('\n\n');
   return '''
 STATIC FILE ROUTES
 
@@ -129,7 +129,7 @@ OLD API DOCUMENTATION
 /Sets/--today--   => will replace --today-- with today's date YYYY-MM-DD before making request
 /Sets/--latest--  => will serve the most recent setlist (see implementation below for notes on caching)
 /Songs/           => serves list of Songs (DO NOT USE, NOT CACHED, SO WILL BE SLOOOOOOW!)
-/alert            => sends a message specified by query param `msg` to all clients
+/alert            => sends a message specified by query param `text` to all clients
 /refresh          => asks the server to reprime the setlist cache
 
 QUERY VARIABLES
@@ -151,7 +151,10 @@ text             => includes sets where the title contains text (case insensitiv
 
 Router setupRoutes(String prefix) {
   final router = Router();
-  for (var routelist in [staticRoutes, apiRoutes]) {
+  for (var routelist in [
+    apiRoutes,
+    staticRoutes,
+  ]) {
     for (var r in routelist) {
       var path = '$prefix${r.path}';
       print('setting up route for $path');
@@ -165,7 +168,7 @@ Router setupRoutes(String prefix) {
 
 // alert handler
 FutureOr<Response> alertsHandler(Request req) async {
-  String msg = req.url.queryParameters['msg'] ?? '';
+  String msg = req.url.queryParameters['text'] ?? '';
   var wm = WebSocketMessage.alert(msg);
   wsManager.broadcast(wm);
   return respondJsonOK(wm);
@@ -207,13 +210,14 @@ FutureOr<Response> staticHandler(Request req) async {
 
 /// serves a single set (if path is sent) or a list of all upcoming setlists
 FutureOr<Response> setsHandler(Request req) async {
-  var setPath = req.params['path'];
+  var setPath = req.params['path'] ?? '';
 
   // if we are using dav, then we only want the path after the davDir
 
   // setPath is set when a single setlist is requested
-  if (setPath != null) {
+  if (setPath.isNotEmpty) {
     setPath = Uri.decodeComponent(setPath);
+    Setlist? set;
 
     // handle special case setlist names
     if (setPath == '--latest--') {
@@ -231,13 +235,25 @@ FutureOr<Response> setsHandler(Request req) async {
     }
 
     // create a set path from today's date and attempt to load it
+    // this only works with sets that are named for dates... if we are using
+    // planning center, we need to actually walk through the setlists
     if (setPath == '--today--') {
       var now = DateTime.now();
       setPath = '${now.year.pad(4)}-${now.month.pad(2)}-${now.day.pad(2)}';
+
+      if (config.mode == config.Mode.pco) {
+        for (var testSet in setsCache) {
+          if (testSet.date.day == now.day && testSet.date.month == now.month && testSet.date.year == now.year) {
+            setPath = testSet.path;
+            break;
+          }
+        }
+      }
     }
 
-    // get a single setlist
-    Setlist? set = await songsSetsClient.getSetlist(setPath, withSongs: true);
+    // get a single setlist unless we already selected a set previously
+    set = await songsSetsClient.getSetlist(setPath, withSongs: true);
+
     if (set == null) {
       return Response.notFound('SETLIST NOT FOUND: $setPath could not be found\n');
     }
@@ -254,9 +270,23 @@ FutureOr<Response> setsHandler(Request req) async {
       songsByPath[song.path] = song;
     }
 
-    return respondJsonOK(set);
+    Setlist filtered = set;
+    // now handle all the filters
+    // DescribedOption('pre-alternates', 'if set, includes songs until a song with ALTERNATES in the title'),
+    // DescribedOption('no-duplicates', 'excludes duplicate songs'),
+    // DescribedOption('no-lyrics', 'excludes lyrics from all songs'),
+    // DescribedOption('no-chords', 'excludes chord lines from songs'),
+    // DescribedOption('ccli-only', 'includes only songs with ccli numbers'),
+    var filters = req.url.queryParameters['filter']?.split(',') ?? [];
+    print('attempting to run filters');
+    for (var filter in filters) {
+      print('running filter: $filter');
+      filtered = doFilter(filter, filtered);
+    }
+
+    return respondJsonOK(filtered);
   } else {
-    // always reprime the setlist cache whenever this function is called
+    // always reprime the setlist cache whenever this function is called without a set path
     primeSetlistTimer?.cancel();
 
     // get all the setlists
@@ -270,6 +300,49 @@ FutureOr<Response> setsHandler(Request req) async {
     primeSetlistTimer = Timer(Duration(seconds: 5), () => primeSetlistCache());
     return respondJsonOK(setsCache.toList());
   }
+}
+
+Setlist doFilter(String filter, Setlist set) {
+  switch (filter) {
+    case 'pre-alternates':
+      var songs = <Song>[];
+      for (var song in set.songs) {
+        if (song.title.contains(RegExp('alternates', caseSensitive: false))) break;
+        songs.add(song);
+      }
+      set.songs = songs;
+      break;
+    case 'no-duplicates':
+      var songs = <Song>[];
+      Set<String> seen = {};
+      for (var song in set.songs) {
+        if (seen.add(song.title)) {
+          songs.add(song);
+        }
+      }
+      set.songs = songs;
+      break;
+    case 'no-lyrics':
+      for (var song in set.songs) {
+        song.lyrics = '';
+      }
+      break;
+    case 'no-chords':
+      for (var song in set.songs) {
+        List<String> lines = [];
+        for (var line in song.lyrics.split('\n')) {
+          if (line.startsWith('.')) continue;
+          lines.add(line);
+        }
+        song.lyrics = lines.join('\n');
+      }
+      break;
+    case 'ccli-only':
+      set.songs.retainWhere((song) => song.ccli.isNotEmpty);
+      break;
+  }
+
+  return set;
 }
 
 FutureOr<Response> songsHandler(Request req) async {

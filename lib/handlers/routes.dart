@@ -35,23 +35,29 @@ class DescribedRoute {
   String toString() {
     var routeLines = <String>[];
     for (DescribedParam param in routeParams ?? []) {
-      routeLines.add('${param.name} (${param.type}) ${param.description}');
+      routeLines.add('     `${param.name}` <(${param.type})> ${param.description}');
+      if (param.options?.isNotEmpty == true) {
+        routeLines.add('     Options:');
+      }
       for (DescribedOption option in param.options ?? []) {
-        routeLines.add('${option.name} : ${option.description}');
+        routeLines.add('       ${option.name} : ${option.description}');
       }
     }
-    var routeString = routeLines.isEmpty ? 'NONE' : routeLines.join('\n');
+    var routeString = routeLines.isEmpty ? 'NONE' : '\n${routeLines.join('\n')}';
 
     var queryLines = <String>[];
-    for (DescribedParam param in routeParams ?? []) {
-      routeLines.add('${param.name} (${param.type}) ${param.description}');
+    for (DescribedParam param in queryParams ?? []) {
+      queryLines.add('     `${param.name}` <(${param.type})> ${param.description}');
+      if (param.options?.isNotEmpty == true) {
+        queryLines.add('     Options:');
+      }
       for (DescribedOption option in param.options ?? []) {
-        routeLines.add('${option.name} : ${option.description}');
+        queryLines.add('       ${option.name} : ${option.description}');
       }
     }
-    var queryString = queryLines.isEmpty ? 'NONE' : routeLines.join('\n');
+    var queryString = queryLines.isEmpty ? 'NONE' : '\n${queryLines.join('\n')}';
 
-    return '''$path
+    return '''${path.isEmpty ? '<empty>' : path}
   => $description
    Route Params: $routeString
    Query Params: $queryString''';
