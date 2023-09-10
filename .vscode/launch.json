@@ -1,31 +1,40 @@
 {
-	// Use IntelliSense to learn about possible attributes.
-	// Hover to view descriptions of existing attributes.
-	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-	"version": "0.2.0",
-	"configurations": [
-		{
-			"name": "Serve",
-			"type": "dart",
-			"request": "launch",
-			"program": "bin/server.dart"
-		},
-		{
-			"name": "PCO Test",
-			"type": "dart",
-			"request": "launch",
-			"program": "test/pco_test.dart"
-		},
-		{
-			"name": "DAV Test",
-			"type": "dart",
-			"request": "launch",
-			"program": "test/dav_test.dart"
-		},
-		{
-			"name": "worshipchords_dart",
-			"request": "launch",
-			"type": "dart"
-		}
-	]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Serve",
+      "type": "dart",
+      "request": "launch",
+      "program": "bin/server.dart"
+    },
+    {
+      "name": "Serve Dev",
+      "type": "dart",
+      "request": "launch",
+      "program": "bin/server-dev.dart",
+      "args": [
+        "--enable-vm-service"
+      ],
+    },
+    {
+      "name": "PCO Test",
+      "type": "dart",
+      "request": "launch",
+      "program": "test/pco_test.dart"
+    },
+    {
+      "name": "DAV Test",
+      "type": "dart",
+      "request": "launch",
+      "program": "test/dav_test.dart"
+    },
+    {
+      "name": "worshipchords_dart",
+      "request": "launch",
+      "type": "dart"
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 import 'dart:io';
 import '../clients/client.dart';
 import '../classes/models.dart';
-
+import '../conf/conf.dart' as config;
 export 'client.dart';
 
 // import 'package:webdav_client/webdav_client.dart' as webdav;
@@ -41,8 +41,7 @@ class OpenSongLocalClient extends SongsSetsClient {
 
   Future<T?> _loadFile<T>(File file) async {
     // also remove the word 'Sets' or 'Songs'
-    var relativePath = Uri.decodeComponent(file.path).replaceFirst(openSongDir, '');
-
+    var relativePath = file.path.replaceFirst(openSongDir, '');
     DateTime lastModified = await file.lastModified();
     try {
       print('Loading: ${file.path}');
@@ -127,20 +126,28 @@ class OpenSongLocalClient extends SongsSetsClient {
     List<Future> futures = [];
     List<FileSystemEntity> dirs = await Directory('${openSongDir}Songs').list().toList();
     for (var d in dirs) {
+      if (d is! Directory) continue;
+      if (config.folderIgnoreMatch != null && d.path.contains(config.folderIgnoreMatch!)) continue;
+
       print('Found Dir: ${d.path}');
-      // futures.add(getSongFolder(d.path).then((items) => songs.addAll(items)));
-      await getSongFolder(d.path).then((items) => songs.addAll(items));
+
+      futures.add(getSongFolder(d.path).then((items) => songs.addAll(items)));
+      // await getSongFolder(d.path).then((items) => songs.addAll(items));
     }
     await _batch(futures);
     return ClientResponse(songs, responseText: '');
   }
 
+  /// this should be a specific song folder... not "Songs"
   Future<List<Song>> getSongFolder(String fullPath) async {
     print('Loading Song Folder: $fullPath');
     List<Song> songs = [];
     List<Future> futures = [];
-    List<FileSystemEntity> files = await Directory('${openSongDir}Songs').list().toList();
-    for (var f in files) {
+    List<FileSystemEntity> items = await Directory(fullPath).list().toList();
+    for (var f in items) {
+      if (f is Directory) continue;
+      if (config.songIgnoreMatch != null && f.path.contains(config.songIgnoreMatch!)) continue;
+
       var basename = f.path.split('/').last;
       if (basename.startsWith('.')) continue;
       futures.add(_loadPath<Song>(f.path).then((e) {
@@ -148,6 +155,9 @@ class OpenSongLocalClient extends SongsSetsClient {
       }));
     }
     await _batch(futures);
+    songs.sort(
+      (a, b) => a.title.compareTo(b.title),
+    );
     return songs;
   }
 

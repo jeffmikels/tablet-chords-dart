@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:planningcenter_api/planningcenter_api.dart';
 import 'package:tablet_chords_dart/clients/pco_client.dart';
 
-import '../conf/conf.dart' as config;
+import '../lib/conf/conf.dart' as config;
 
 void main() async {
   PlanningCenter.init(config.pcoAppId, config.pcoSecret);

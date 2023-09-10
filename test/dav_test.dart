@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:tablet_chords_dart/clients/opensong_dav_client.dart';
 
-import '../conf/conf.dart' as config;
+import '../lib/conf/conf.dart' as config;
 
 void debug(Object o) {
   print(JsonEncoder.withIndent('  ').convert(o));

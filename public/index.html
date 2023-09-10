@@ -5,8 +5,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <meta
       name="viewport"
-      content="width=device-width, maximum-scale=1, minimum-scale=1, initial-scale=1, shrink-to-fit=no, user-scalable=no"
-    />
+      content="width=device-width, maximum-scale=1, minimum-scale=1, initial-scale=1, shrink-to-fit=no, user-scalable=no" />
 
     <!-- ABC -->
     <!-- <script src="abc2svg.js"></script> -->
@@ -24,8 +23,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link
       href="https://fonts.googleapis.com/css?family=Muli:300,400,400i,700,700i,900|Inconsolata:400,700&display=swap"
-      rel="stylesheet"
-    />
+      rel="stylesheet" />
 
     <title>Tablet Chords</title>
 
@@ -88,24 +86,24 @@
       }
 
       /*setlist menu*/
-      #setlist {
+      .selection-list {
         list-style: none;
         padding: 0;
       }
-      #setlist li {
+      .selection-list li {
         padding: 5px 0 5px 1vw;
         margin: 0;
         border: 1px solid #333;
         cursor: pointer;
       }
-      #setlist li:hover {
+      .selection-list li:hover {
         background: #311;
       }
-      #setlist li .name {
+      .selection-list li .name {
         font-size: 5vh;
         font-weight: 900;
       }
-      #setlist li .time {
+      .selection-list li .time {
         font-size: 2vh;
         color: #444;
         margin: 0;
@@ -286,10 +284,10 @@
       .light .abc svg text {
         fill: black;
       }
-      .light #setlist li {
+      .light .selection-list li {
         color: blue;
       }
-      .light #setlist li:hover {
+      .light .selection-list li:hover {
         background: yellow;
       }
 
@@ -522,22 +520,60 @@
     </div>
     <div id="app" :style="{fontSize: fontSize + 'px'}" :class="theme">
       <div id="debug">{{debug}}</div>
+      <!-- loading indicator -->
       <div id="loader" v-if="loading">LOADING...</div>
+
+      <!-- main content -->
       <div id="content" v-show="!loading">
-        <ul v-if="!current_set" id="setlist">
-          <h3>Choose A Set</h3>
+        <!-- SONG MODE, no current folder -->
+        <ul v-if="mode == 'songs' && !current_folder" class="selection-list" id="folderlist">
+          <div class="row">
+            <h3>Choose A Folder</h3>
+            Mode: <button @click="setMode('songs')">Songs</button>
+            <button @click="setMode('sets')">Sets</button>
+          </div>
+          <li v-for="folder in folders" @click="selectFolder(folder)">
+            <span class="name">{{folder}}</span>
+          </li>
+        </ul>
+        <!-- song mode with current folder -->
+        <ul v-if="mode == 'songs' && current_folder && !current_song" class="selection-list" id="songlist">
+          <div class="row">
+            <h3>Choose A Song</h3>
+            Mode: <button @click="setMode('songs')">Songs</button>
+            <button @click="setMode('sets')">Sets</button>
+          </div>
+          <li v-for="song, n in current_songs" @click="selectFolderSong(n)">
+            <span class="name">{{song.title}}</span>
+            <span class="time">{{song.author}}</span>
+          </li>
+        </ul>
+
+        <!-- when there is no current set -->
+        <ul v-if="mode == 'sets' && !current_set" class="selection-list" id="setlist">
+          <div class="row">
+            <h3>Choose A Set</h3>
+            Mode: <button @click="setMode('songs')">Songs</button>
+            <button @click="setMode('sets')">Sets</button>
+          </div>
           <li v-for="set in sets" @click="selectSet(set.path)">
             <span class="time">({{set.date|niceTime}})</span><br />
             <span class="name">{{set.name}}</span>
           </li>
         </ul>
-        <div id="setbox" v-if="current_set">
-          <div class="header-bar">
+
+        <!-- when there is a selected set -->
+        <div id="setbox" v-if="current_set || (current_folder && current_song)">
+          <div class="header-bar" v-if="current_set">
             <div class="setname">SET: {{current_set.name}} — SONG #{{current_song_index + 1}}</div>
             <div class="songnum">{{song_number}}</div>
           </div>
+          <div class="header-bar" v-if="!current_set">
+            <div class="setname">FOLDER: {{current_folder}} — SONG #{{current_song_index + 1}}</div>
+            <!-- <div class="songnum">{{song_number}}</div> -->
+          </div>
           <div id="songs" :class="{nocolumns: !columns, columns: columns}">
-            <div class="song" v-for="song in current_songs">
+            <div class="song" v-for="song in current_song_index ? [current_song] : current_songs">
               <h3 class="title">{{song.title|cleantitle}}</h3>
               <div id="alert" v-if="alert_message">
                 <span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
@@ -575,8 +611,7 @@
               <div
                 class="lyrics"
                 :class="{nochords:!showchords,nocomments:!showcomments}"
-                v-html="lyric_html(song)"
-              ></div>
+                v-html="lyric_html(song)"></div>
               <div class="abc" v-html="abc_svg(song)" v-if="song.abc && showchords"></div>
               <div class="legal">
                 <div class="author">{{song.author}}</div>
@@ -800,9 +835,13 @@
       app = new Vue({
         el: '#app',
         data: {
+          mode: 'sets', // or 'songs'
           controlling: false,
           loading: 1,
           sets: [],
+          folders: [],
+          songs: {},
+          current_folder: '',
           current_set: false,
           current_song_index: null,
           showall: false,
@@ -819,14 +858,18 @@
         },
         computed: {
           current_song: function () {
-            if (this.current_set == false || this.current_set == null) return {};
-            if (this.current_song_index == null || this.showall) return {};
-            else return this.current_set.songs[this.current_song_index];
+            if (this.current_songs.length == 0) return null;
+            else return this.current_songs[this.current_song_index];
           },
           current_songs: function () {
-            if (this.current_set == false || this.current_set == null) return [];
-            if (this.current_song_index == null || this.showall) return this.current_set.songs;
-            else return [this.current_set.songs[this.current_song_index]];
+            if (this.mode == 'sets') {
+              if (!this.current_set) return [];
+              else return this.current_set.songs;
+            }
+
+            if (this.mode == 'songs') {
+              return this.current_folder ? this.songs[this.current_folder] : [];
+            }
           },
           col_btn_label: function () {
             if (this.columns) return `${this.columns} COLS`;
@@ -835,6 +878,9 @@
           song_number() {
             if (this.current_song_index == null || this.showall) return 'ALL SONGS';
             else return `SONG #${this.current_song_index + 1} / ${this.current_set.songs.length}`;
+          },
+          current_folder_songs() {
+            return this.current_folder ? this.songs[this.current_folder] : [];
           },
         },
         filters: {
@@ -865,6 +911,11 @@
           },
         },
         methods: {
+          setMode(mode) {
+            this.mode = mode;
+            if (this.mode == 'songs') this.getSongs();
+            else this.getSets();
+          },
           copy() {
             let txt = [];
             for (let song of this.current_songs) {
@@ -920,8 +971,8 @@
             this.showall = false;
             let next_song =
               this.current_song_index == null
-                ? this.current_set.songs.length - 1
-                : (this.current_song_index + this.current_set.songs.length - 1) % this.current_set.songs.length;
+                ? this.current_songs.length - 1
+                : (this.current_song_index + this.current_songs.length - 1) % this.current_songs.length;
             this.selectSong(next_song);
           },
           next() {
@@ -929,16 +980,37 @@
             window.scrollTo(0, 0);
             this.showall = false;
             let next_song =
-              this.current_song_index == null ? 1 : (this.current_song_index + 1) % this.current_set.songs.length;
+              this.current_song_index == null ? 1 : (this.current_song_index + 1) % this.current_songs.length;
             this.selectSong(next_song);
+          },
+          makeHash() {
+            let set_name = this.current_set ? this.current_set.path : this.current_folder || '';
+            let num = this.current_song_index !== null ? ',' + (this.current_song_index + 1) : '';
+            return `#${this.mode},${encodeURI(set_name)}${num}`;
           },
           selectSong(n) {
             if (!this.allownav) return;
             if (n < 0) n = 0;
-            if (n < this.current_set.songs.length) {
+            if (n < this.current_songs.length) {
               this.current_song_index = n;
-              let set_name = this.current_set.path;
-              window.history.replaceState(set_name, set_name, `#${encodeURI(set_name)},${n + 1}`);
+              window.history.replaceState(set_name, set_name, this.makeHash());
+              this.renotify();
+            }
+          },
+          selectFolder(folder) {
+            this.current_set = null;
+            this.current_folder = folder;
+            window.history.pushState(folder, folder, this.makeHash());
+            this.renotify();
+          },
+          selectFolderSong(n) {
+            if (!this.allownav) return;
+            if (!this.current_folder) return;
+            if (n < 0) n = 0;
+            if (n < this.current_songs.length) {
+              let folder = this.current_folder;
+              this.current_song_index = n;
+              window.history.pushState(folder, folder, this.makeHash());
               this.renotify();
             }
           },
@@ -957,19 +1029,20 @@
             if (this.ws) this.ws.send({ type: 'refresh', data: {} });
             else axios.get(`${endpoint}/refresh`);
           },
-          getSets() {
+
+          getSongs() {
             return new Promise((resolve, reject) => {
-              let url = `${endpoint}/Sets/`;
+              let url = `${endpoint}/Songs/`;
               this.debug = 'loading';
-              if (!this.current_set) this.loading += 1;
+              if (!this.current_folder) this.loading += 1;
               axios
                 .get(url)
                 .then((res) => {
                   console.log(res);
-                  res.data.sort((a, b) => (b.date < a.date ? -1 : 1));
-                  this.sets = res.data;
+                  this.songs = res.data;
+                  this.folders = Object.keys(this.songs);
                   this.debug = '';
-                  if (!this.current_set) this.loading -= 1;
+                  if (!this.current_folder) this.loading -= 1;
                 })
                 .catch((err) => {
                   console.log(err);
@@ -979,16 +1052,7 @@
                 });
             });
           },
-          async deselectSet() {
-            this.current_set = false;
-            await this.getSets();
-            window.history.pushState('', '', '#');
-          },
-          selectSet(set_path) {
-            window.history.pushState(set_path, set_path, `#${encodeURI(set_path)}`);
-            this.getSet(set_path);
-          },
-          getSet(set_path, song_index = 0) {
+          getSong(set_path, song_index = 0) {
             // leading slash
             if (set_path[0] != '/') set_path = '/' + set_path;
 
@@ -1036,6 +1100,83 @@
                 console.log(err);
               });
           },
+          getSets() {
+            let url = `${endpoint}/Sets/`;
+            this.debug = 'loading';
+            if (!this.current_set) this.loading += 1;
+            return axios
+              .get(url)
+              .then((res) => {
+                console.log(res);
+                res.data.sort((a, b) => (b.date < a.date ? -1 : 1));
+                this.sets = res.data;
+                this.debug = '';
+                if (!this.current_set) this.loading -= 1;
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          },
+          getSet(set_path, song_index = 0) {
+            // leading slash
+            if (set_path[0] != '/') set_path = '/' + set_path;
+
+            // leading sets if needed
+            if (!set_path.match(/Sets\//)) set_path = 'Sets' + set_path;
+            this.loading += 1;
+            let url = `${endpoint}${encodeURI(set_path)}`;
+            this.debug = 'loading';
+            return axios
+              .get(url)
+              .then((res) => {
+                console.log(res);
+                // let newSet = Set();
+                let songs = res.data.songs;
+
+                // load set-specific transpose and capo settings
+                for (var i = 0; i < songs.length; i++) {
+                  let song = songs[i];
+                  song.transpose = 0;
+                  song.capo = 0;
+                  song.bpm = song.bpm ? song.bpm : 140;
+                  // for "blank" songs
+                  if (!song.key) song.bpm = 1;
+
+                  let id = `${res.data.path}-${i}-${song.path}-transpose`;
+                  let t = localStorage.getItem(id);
+                  if (t !== null) song.transpose = 1 * t;
+
+                  id = `${res.data.path}-${i}-${song.path}-capo`;
+                  t = localStorage.getItem(id);
+                  if (t !== null) song.capo = 1 * t;
+
+                  id = `${res.data.path}-${i}-${song.path}-bpm`;
+                  t = localStorage.getItem(id);
+                  if (t !== null) song.bpm = 1 * t;
+                }
+
+                this.current_set = res.data;
+                this.current_song_index = song_index;
+                this.debug = '';
+                this.loading -= 1;
+                this.renotify();
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          },
+          async deselectSet() {
+            this.current_set = false;
+            this.current_folder = false;
+            await this.getSets();
+            window.history.pushState('', '', '#');
+          },
+          async selectSet(set_path) {
+            this.current_folder = null;
+            await this.getSet(set_path);
+            window.history.pushState(set_path, set_path, this.makeHash());
+          },
+
           transpose(song, inc) {
             if (!song.transpose) song.transpose = 0;
             song.transpose = (24 + inc + song.transpose) % 12; // ensure we mod positive numbers
@@ -1404,13 +1545,30 @@
             if (window.location.hash.length > 1) {
               let hashdata = window.location.hash.replace('#', '').split(',');
               console.log(hashdata);
+
+              // initialize variables to default
+              this.current_folder = null;
+              this.current_set = null;
+              this.current_song_index = null;
+              this.mode = hashdata.shift();
               let set_name = hashdata.shift();
-              let song_index = 0;
+              let song_index = null;
               if (hashdata.length > 0) song_index = parseInt(hashdata[0]) - 1;
               this.save();
-              this.getSet(set_name, song_index);
+              if (this.mode == 'songs') {
+                await this.getSongs();
+                if (set_name) {
+                  this.current_folder = set_name;
+                  if (song_index != null) {
+                    this.selectFolderSong(song_index);
+                  }
+                }
+              } else if (set_name) {
+                this.getSet(set_name, song_index || 0);
+              }
             } else {
               this.current_set = false;
+              this.current_folder = false;
             }
           },
           toggle_metronome(song) {
@@ -1486,11 +1644,12 @@
 
           // prepare the sets
           await this.getSets();
+          this.getSongs(); // always initiate a load of these too
           this.hashCheck();
 
           window.devel = false;
           window.addEventListener('popstate', (e) => {
-            this.current_set = false;
+            this.hashCheck();
           });
 
           if (this.allownav) {
