@@ -1,4 +1,8 @@
-const usedav = true;
+enum Mode { local, dav, pco }
+
+const mode = Mode.pco;
+
+const localDir = '';
 
 const davUrl = "https://dav.example.org";
 const davUsername = "";

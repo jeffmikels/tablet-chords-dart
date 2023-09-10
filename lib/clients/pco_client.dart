@@ -57,6 +57,7 @@ class PCOClient extends SongsSetsClient {
         query: PcoServicesItemQuery(
           includeSong: true,
           includeArrangement: true,
+          includeKey: true,
         ),
       );
       for (var item in songs.items) {
@@ -68,6 +69,7 @@ class PCOClient extends SongsSetsClient {
           plan.lastTimeAt,
           item.includedSong!,
           item.includedArrangement!,
+          item.includedKey,
         );
         set.songs.add(song);
       }
@@ -87,7 +89,12 @@ class PCOClient extends SongsSetsClient {
     if (set.isError) return null;
     var plan = set.items.first;
     var setlist = Setlist.fromPlanningCenterPlan(plan);
-    var items = await plan.getItems(query: PcoServicesItemQuery(includeArrangement: true, includeSong: true));
+    var items = await plan.getItems(
+        query: PcoServicesItemQuery(
+      includeArrangement: true,
+      includeSong: true,
+      includeKey: true,
+    ));
     if (items.isError) return null;
 
     for (var item in items.items) {
@@ -98,6 +105,7 @@ class PCOClient extends SongsSetsClient {
             item.includedSong!.updatedAt,
             item.includedSong!,
             item.includedArrangement!,
+            item.includedKey,
           ),
         );
       }

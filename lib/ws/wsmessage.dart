@@ -10,8 +10,8 @@ class WebSocketMessage {
   factory WebSocketMessage.connected() => WebSocketMessage('connected');
   factory WebSocketMessage.disconnected() => WebSocketMessage('disconnected');
   factory WebSocketMessage.error(String msg) => WebSocketMessage('error', {'message': msg}, true);
-  factory WebSocketMessage.text(String msg) => WebSocketMessage('text', {'text': msg}, true);
-  factory WebSocketMessage.alert(String msg) => WebSocketMessage('alert', {'text': msg}, true);
+  factory WebSocketMessage.text(String msg) => WebSocketMessage('text', {'text': msg}, false);
+  factory WebSocketMessage.alert(String msg) => WebSocketMessage('alert', {'text': msg}, false);
 
   WebSocketMessage.fromJson(Map data)
       : type = data['type'] ?? '',
