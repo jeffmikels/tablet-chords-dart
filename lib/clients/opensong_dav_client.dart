@@ -53,10 +53,10 @@ class OpenSongDavClient extends SongsSetsClient {
       print('Loading: $cleanPath');
       late String xmlString;
       if (useCache && cache.containsKey(cleanPath)) {
-        xmlString = cache[cleanPath]!;
+        xmlString = (cache[cleanPath]!).data;
       } else {
         xmlString = await client.downloadToBinaryString(file.path);
-        cache[cleanPath] = xmlString;
+        cache[cleanPath] = CachedItem(cleanPath, DateTime.now(), xmlString);
       }
       switch (T) {
         case Setlist:
@@ -71,6 +71,11 @@ class OpenSongDavClient extends SongsSetsClient {
       print('Failed to get data for "$cleanPath"');
       return null;
     }
+  }
+
+  @override
+  Future<void> updateCache() async {
+    return;
   }
 
   /// returns setlists paginated

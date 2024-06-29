@@ -29,6 +29,8 @@ Response respondJsonOK(Object obj) {
 // GLOBALS
 
 // in-memory caches
+DateTime lastCacheUpdate = DateTime.now();
+Map<String, DateTime> fileTimes = {};
 final songsByPath = <String, Song>{};
 final setsByPath = <String, Setlist>{};
 final setsCache = <Setlist>[];
@@ -395,6 +397,7 @@ FutureOr<Response> rootHandler(Request req) {
 Future<void> primeSetlistCache() async {
   songsSetsClient.useCache = false;
   var res = await songsSetsClient.getSetlists();
+  songsSetsClient.useCache = true;
   if (!res.isError) {
     setsByPath.clear();
     setsCache.clear();
@@ -428,7 +431,7 @@ void setupClient() {
       songsSetsClient = PCOClient(config.pcoServiceTypeId, config.pcoAppId, config.pcoSecret);
       break;
   }
-  songsSetsClient.useCache = false;
+  songsSetsClient.useCache = true;
   wsManager = WebSocketManager(songsSetsClient);
 }
 
@@ -436,8 +439,13 @@ void setupCache() async {
   await primeSetlistCache();
   await primeSongCache();
   Timer.periodic(Duration(hours: 6), (timer) async {
+    print('fully prime the setlist cache');
     await primeSetlistCache();
     primeSongCache();
+  });
+  Timer.periodic(Duration(minutes: 1), (timer) async {
+    print('updating cache');
+    songsSetsClient.updateCache();
   });
 }
 

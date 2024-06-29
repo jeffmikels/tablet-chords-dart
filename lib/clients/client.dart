@@ -1,10 +1,18 @@
 import '../classes/models.dart';
 
+class CachedItem {
+  final String path;
+  final DateTime lastModified;
+  final String data;
+
+  CachedItem(this.path, this.lastModified, this.data);
+}
+
 abstract class SongsSetsClient {
   bool lastRequestHasMore = false;
   int nextOffset = 0;
 
-  final Map<String, String> cache = {};
+  final Map<String, CachedItem> cache = {};
   bool useCache = true;
 
   /// returns setlists paginated
@@ -13,6 +21,9 @@ abstract class SongsSetsClient {
     int pageOffset = 0,
   });
   Future<Setlist?> getSetlist(String path, {bool withSongs = false});
+
+  /// will update the cache with the latest data
+  Future<void> updateCache();
 
   /// returns songs paginated
   Future<ClientResponse<List<Song>>> getSongs({

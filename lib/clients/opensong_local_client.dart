@@ -45,12 +45,13 @@ class OpenSongLocalClient extends SongsSetsClient {
     DateTime lastModified = await file.lastModified();
     try {
       print('Loading: ${file.path}');
-      late String xmlString;
-      if (useCache && cache.containsKey(relativePath)) {
-        xmlString = cache[relativePath]!;
+      String xmlString = '';
+      var cached = cache[file.path];
+      if (cached != null && !cached.lastModified.isBefore(lastModified)) {
+        xmlString = cached.data;
       } else {
         xmlString = await file.readAsString();
-        cache[relativePath] = xmlString;
+        cache[file.path] = CachedItem(file.path, lastModified, xmlString);
       }
       switch (T) {
         case Setlist:
@@ -65,6 +66,17 @@ class OpenSongLocalClient extends SongsSetsClient {
       print('Failed to get data for "$relativePath"');
       return null;
     }
+  }
+
+  @override
+  Future<void> updateCache() async {
+    List<Future> promises = [];
+    for (var fullPath in cache.keys) {
+      var file = File(fullPath);
+      promises.add(_loadFile(file));
+    }
+    await Future.wait(promises);
+    return;
   }
 
   /// returns setlists paginated

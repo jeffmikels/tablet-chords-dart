@@ -79,6 +79,11 @@ class PCOClient extends SongsSetsClient {
     return ClientResponse(sets, responseText: '');
   }
 
+  @override
+  Future<void> updateCache() async {
+    return;
+  }
+
   /// `id` refers to the PlanningCenter Plan id
   @override
   Future<Setlist?> getSetlist(String id, {bool withSongs = false}) async {
