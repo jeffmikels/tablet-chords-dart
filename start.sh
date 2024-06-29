@@ -15,6 +15,6 @@ else
 		./bin/server
 	else
 		echo "Server build failed... attempting to run from dart file"
-		/usr/bin/dart bin/server.dart
+		dart bin/server.dart
 	fi
 fi

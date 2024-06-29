@@ -34,6 +34,35 @@
         margin: 0;
         padding: 0;
       }
+      :root {
+        --active-color: #f11;
+        --active-text: black;
+        --title-color: red;
+        --key-color: #dd0;
+        --section-color: yellow;
+        --nashville-color: #ad3b3b;
+        --capo-color: #faf;
+        --metronome-color: #3287ff;
+        --bpm-color: cyan;
+        --comment-color: #faa;
+        --text-color: white;
+        --background-color: black;
+        --grey: #777;
+        --dark-grey: #333;
+      }
+
+      .light {
+        --key-color: #dd0;
+        --section-color: rgb(106, 106, 0);
+        --nashville-color: #ad3b3b;
+        --capo-color: #faf;
+        --metronome-color: #3287ff;
+        --bpm-color: cyan;
+        --comment-color: #b77;
+        --text-color: black;
+        --background-color: white;
+      }
+
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
           'Open Sans', 'Helvetica Neue', sans-serif;
@@ -112,6 +141,7 @@
       }
 
       /*alert box*/
+      #remote-alert,
       #alert {
         position: absolute;
         /* height: 25%; */
@@ -122,13 +152,25 @@
         background-color: hsla(0, 50%, 50%, 0.8);
         color: white;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         font-size: 3em;
         font-weight: 900;
         z-index: 999;
       }
-
+      #alert .title {
+        color: var(--section-color);
+      }
+      #alert .row {
+        display: flex;
+        column-gap: 40px;
+      }
+      #alert .row span {
+        background: black;
+        padding: 8px 30px;
+        border-radius: 30px;
+      }
       /*songs display*/
       #songs {
         padding: 5px;
@@ -163,45 +205,14 @@
       }
       .song {
         margin-bottom: 20px;
-        border-bottom: 3px solid yellow;
+        border-bottom: 3px solid var(--section-color);
       }
       .song h3.title {
-        color: red;
+        color: var(--title-color);
         font-size: 1.4em;
         margin-bottom: 0;
         margin-top: 15px;
         font-weight: 900;
-      }
-
-      .controlbuttons {
-        margin: 10px 0;
-        display: flex;
-      }
-      .controlbuttons button {
-        color: black;
-        display: flex;
-        align-content: center;
-        justify-content: center;
-        font-size: 1.2vw;
-        border-radius: 6px;
-        line-height: 2vw;
-        width: 2vw;
-        margin-right: 4px;
-      }
-      .transposebutton {
-        background: #dd0;
-      }
-      .nashvillebutton {
-        background: #ad3b3b;
-      }
-      .capobutton {
-        background: #faf;
-      }
-      .bpmbutton {
-        background: cyan;
-      }
-      .metronomebutton {
-        background: #3287ff;
       }
 
       .lyrics {
@@ -216,7 +227,7 @@
         text-indent: -10px;
       }
       .lyrics .comment {
-        color: #faa;
+        color: var(--comment-color);
         font-size: 0.9em;
         font-style: italic;
         font-family: Muli, sans;
@@ -229,7 +240,7 @@
         margin-top: 1.2em;
         font-weight: 900;
         text-transform: uppercase;
-        color: yellow;
+        color: var(--section-color);
         border-bottom: 1px solid #330;
       }
       .lyrics .chord {
@@ -269,50 +280,50 @@
 
       /* LIGHT THEME */
       .light {
-        color: black;
-        background: white;
+        /* color: black;
+        background: white; */
       }
       .light .abc {
-        color: black;
+        /* color: black; */
       }
       .light .abc svg {
-        background: white;
+        /* background: white; */
       }
       .light .abc svg path {
-        fill: black;
+        /* fill: black; */
       }
       .light .abc svg text {
-        fill: black;
+        /* fill: black; */
       }
       .light .selection-list li {
-        color: blue;
+        /* color: blue; */
       }
       .light .selection-list li:hover {
-        background: yellow;
+        /* background: yellow; */
       }
 
       .light .setname {
-        background: white;
-        color: black;
+        /* background: white;
+        color: black; */
       }
       .light .songnum {
-        background: white;
-        color: black;
+        /* background: white;
+        color: black; */
       }
       .light .song h3.title {
-        color: #38a;
+        /* color: #38a; */
       }
       .light .song {
-        border-bottom: 50px solid #eee;
+        /* border-bottom: 50px solid #eee; */
       }
       .light .lyrics .comment {
-        color: #b77;
+        /* color: #b77; */
       }
       .light .lyrics .chord {
-        color: red;
+        /* color: red; */
       }
       .light .lyrics .section {
-        color: #359;
+        /* color: #359; */
       }
       /* END LIGHT THEME */
 
@@ -320,24 +331,24 @@
         font-style: italic;
         font-size: 0.8em;
         margin-top: 30px;
-        color: #777;
+        color: var(--dark-grey);
         text-align: center;
         border-top: 1px solid;
       }
 
       button {
-        background: #333;
+        background: var(--dark-grey);
         border: none;
         outline: none;
-        color: #777;
+        color: var(--grey);
         font-size: 14px;
         font-weight: 900;
         text-transform: uppercase;
         margin: 0 1px;
       }
       button.active {
-        background: #f11;
-        color: black;
+        background: var(--active-color);
+        color: var(--active-text);
       }
       button:focus {
         outline: none;
@@ -354,7 +365,7 @@
         right: 0;
         left: 0;
         text-align: right;
-        background: black;
+        background: var(--background-color);
         height: 24px;
       }
       #buttons button {
@@ -420,7 +431,7 @@
         background: green;
       }
       #flasher {
-        background: yellow;
+        background: var(--section-color);
         width: 100%;
         height: 26px;
         position: fixed;
@@ -477,27 +488,53 @@
         margin-left: 4px;
       }
 
+      .controlbuttons {
+        margin: 10px 0;
+        display: flex;
+      }
       .controlbuttons button {
+        box-sizing: border-box;
         border: 3px solid white;
+        color: white;
         border-radius: 30px;
         width: 70px;
         background: none;
-        color: white;
+        display: flex;
+        align-content: center;
+        justify-content: center;
+        font-size: 1.7vh;
+        /* line-height: 2vw; */
+        margin-right: 4px;
+      }
+      span.transpose {
+        color: var(--key-color);
       }
       .controlbuttons .transposebutton {
-        border-color: #dd0;
+        border-color: var(--key-color);
+      }
+      span.nashville {
+        color: var(--nashville-color);
       }
       .controlbuttons .nashvillebutton {
-        border-color: #ad3b3b;
+        border-color: var(--nashville-color);
+      }
+      span.capo {
+        color: var(--capo-color);
       }
       .controlbuttons .capobutton {
-        border-color: #faf;
+        border-color: var(--capo-color);
+      }
+      span.metronome {
+        color: var(--metronome-color);
       }
       .controlbuttons .metronomebutton {
-        border-color: #3287ff;
+        border-color: var(--metronome-color);
+      }
+      span.bpm {
+        color: var(--bpm-color);
       }
       .controlbuttons .bpmbutton {
-        border-color: cyan;
+        border-color: var(--bpm-color);
       }
       .chord,
       .chord-group {
@@ -510,6 +547,11 @@
       }
       a {
         color: #f66;
+      }
+      div.small {
+        margin-top: 2px;
+        font-size: 0.6em;
+        font-weight: 400;
       }
     </style>
   </head>
@@ -538,6 +580,7 @@
             <span class="name">{{folder}}</span>
           </li>
         </ul>
+
         <!-- song mode with current folder -->
         <ul v-if="mode == 'songs' && current_folder && !current_song" class="selection-list" id="songlist">
           <div class="row">
@@ -566,6 +609,7 @@
 
         <!-- when there is a selected set -->
         <div id="setbox" v-if="current_set || (current_folder && current_song)">
+          <!-- HEADER BAR -->
           <div class="header-bar" v-if="current_set">
             <div class="setname">SET: {{current_set.name}} — SONG #{{current_song_index + 1}}</div>
             <div class="songnum">{{song_number}}</div>
@@ -574,29 +618,36 @@
             <div class="setname">FOLDER: {{current_folder}} — SONG #{{current_song_index + 1}}</div>
             <!-- <div class="songnum">{{song_number}}</div> -->
           </div>
+
           <div id="songs" :class="{nocolumns: !columns, columns: columns}">
-            <div class="song" v-for="song in current_song_index ? [current_song] : current_songs">
+            <div class="song" v-for="song in current_song_index != null ? [current_song] : current_songs">
+              <!-- SONG TITLE -->
               <h3 class="title">{{song.title|cleantitle}}</h3>
-              <div id="alert" v-if="alert_message">
+
+              <!-- ALERT MESSAGE -->
+              <div id="remote-alert" v-if="alert_message">
                 <span v-if="alert_message">&nbsp;{{alert_message}}&nbsp;</span>
               </div>
               <div class="metabox">
-                <h3 class="title">{{song.title|cleantitle}}</h3>
                 <div v-if="showchords">
                   <div id="alert" v-if="show_alert && (song.capo || nashville) && current_song_index != null">
-                    <span v-if="song.key">&nbsp;[ KEY: {{song | transposed_key}} ]&nbsp;</span>
-                    <span v-if="song.capo > 0">&nbsp;[ CAPO: {{song.capo}} ]&nbsp;</span>
+                    <h3 class="title">{{song.title|cleantitle}}</h3>
+                    <div class="row">
+                      <span v-if="song.key">KEY: {{song | transposed_key}}</span>
+                      <span v-if="song.capo > 0">CAPO: {{song.capo}} ({{song | capo_key}})</span>
+                    </div>
                   </div>
 
                   <div class="songmeta">
-                    <span v-if="song.key"
+                    <span class="transpose" v-if="song.key"
                       >[ KEY: {{song | transposed_key}}
                       <small v-if="song.transpose > 0">({{song.transpose | nice_transpose}}) </small>]</span
                     >
-                    <span v-if="song.capo"
+                    <span class="capo" v-if="song.capo"
                       >[ CAPO: {{song | capo_key}} <small v-if="song.capo > 0">({{song.capo}}) </small>]</span
                     >
-                    <span v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
+                    <span class="bpm" v-if="song.bpm">[ BPM: {{song.bpm}} ]</span>
+                    <div v-if="song.bpm" class="small">{{song_delays}}</div>
                     <!-- <span v-if="song.transpose > 0"></span> -->
                   </div>
                   <div v-if="song.key" class="controlbuttons">
@@ -891,6 +942,12 @@
           current_folder_songs() {
             return this.current_folder ? this.songs[this.current_folder] : [];
           },
+          song_delays() {
+            let main = 60000 / (this.current_song?.bpm ?? 140);
+            let half = main / 2;
+            let dotted = main * 1.5;
+            return `delay: ${main.toFixed(1)}ms • half: ${half.toFixed(1)}ms • dotted 8: ${dotted.toFixed(1)}ms`;
+          },
         },
         filters: {
           nice_transpose: function (num) {
@@ -1003,6 +1060,7 @@
             if (!this.allownav) return;
             if (n < 0) n = 0;
             if (n < this.current_songs.length) {
+              let set_name = this.current_set ? this.current_set.path : this.current_folder || '';
               this.current_song_index = n;
               window.history.replaceState(set_name, set_name, this.makeHash());
               this.renotify();
@@ -1026,6 +1084,11 @@
             }
           },
           tap(e) {
+            if (this.show_alert || e.target.id == 'alert') {
+              this.show_alert = false;
+              this.$forceUpdate();
+              return;
+            }
             if (e.target.tagName == 'BUTTON' || e.target.tagName == 'A') return;
             if (!this.current_set || !this.allownav) return;
             if (e.clientY > window.innerHeight / 10 && e.clientY < (window.innerHeight * 9) / 10) {
@@ -1208,6 +1271,7 @@
             this.save();
           },
           capo(song, inc) {
+            this.show_alert = false;
             if (!song.capo) song.capo = 0;
             song.capo = (24 + inc + song.capo) % 12; // ensure we mod positive numbers
             console.log(song);
